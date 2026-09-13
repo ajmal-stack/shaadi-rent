@@ -17,7 +17,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning={true}>
-      <body suppressHydrationWarning={true}>
+      <body
+        suppressHydrationWarning={true}
+        className="min-h-screen bg-white text-gray-900 antialiased pb-20 md:pb-0"
+      >
         <Header />
         {children}
       </body>

@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  Menu,
   Search,
   User,
   Calendar,
@@ -14,8 +13,9 @@ import {
   LayoutDashboard,
   ShieldAlert,
 } from "lucide-react";
-import { MobileMenu, AuthUser } from "./MobileMenu";
+import { AuthUser } from "./MobileMenu";
 import { SearchModal } from "./SearchModal";
+import { MobileBottomNav } from "./MobileBottomNav";
 import { signOut } from "@/app/(public)/auth/actions";
 
 interface NavbarProps {
@@ -24,7 +24,6 @@ interface NavbarProps {
 
 export function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
@@ -71,7 +70,7 @@ export function Navbar({ user }: NavbarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-rose-100/80 bg-white/95 backdrop-blur-md shadow-xs transition-colors">
+      <header className="sticky top-0 z-30 w-full border-b border-rose-100/80 bg-white/95 backdrop-blur-md shadow-xs transition-colors">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* =========================================================================
               DESKTOP NAVBAR (Hidden on mobile, visible on md and above)
@@ -287,24 +286,12 @@ export function Navbar({ user }: NavbarProps) {
           </div>
 
           {/* =========================================================================
-              MOBILE NAVBAR (Visible on mobile screens < md)
-              Exact layout requested:
-              ☰ | ShaadiRent | 🔍 | 👤
+              MOBILE TOP HEADER (Visible on mobile screens < md)
+              Clean, elegant top header without sidebar toggle:
+              Left: ShaadiRent Logo | Right: Search & Account/Login
              ========================================================================= */}
-          <div className="flex md:hidden h-16 items-center justify-between">
-            {/* 1. Hamburger Icon Button (☰) */}
-            <button
-              type="button"
-              id="mobile-menu-trigger"
-              aria-label="Open navigation menu"
-              aria-expanded={isMobileMenuOpen}
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-800 transition-colors focus:outline-none active:scale-95"
-            >
-              <Menu size={24} strokeWidth={2.2} />
-            </button>
-
-            {/* 2. ShaadiRent Logo */}
+          <div className="flex md:hidden h-14 items-center justify-between">
+            {/* ShaadiRent Logo */}
             <Link
               href="/"
               className="flex items-center gap-2 focus:outline-none"
@@ -320,23 +307,23 @@ export function Navbar({ user }: NavbarProps) {
               </span>
             </Link>
 
-            {/* Right Action Icons: 🔍 | 👤 */}
-            <div className="flex items-center gap-1">
-              {/* 3. Search Icon (🔍) */}
+            {/* Right Action Icons: 🔍 Search + 👤 Account */}
+            <div className="flex items-center gap-1.5">
+              {/* Search Trigger */}
               <button
                 type="button"
                 onClick={() => setIsSearchOpen(true)}
                 aria-label="Search outfits"
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-800 transition-colors focus:outline-none active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-800 transition-colors focus:outline-none active:scale-95"
               >
-                <Search size={21} strokeWidth={2.2} />
+                <Search size={20} strokeWidth={2.2} />
               </button>
 
-              {/* 4. Account/User Icon (👤) */}
+              {/* User Account / Login Badge */}
               <Link
                 href={user ? "/account" : "/auth/login"}
                 aria-label={user ? "My Account" : "Login"}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-800 transition-colors focus:outline-none active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-800 transition-colors focus:outline-none active:scale-95"
               >
                 {user?.avatarUrl ? (
                   <Image
@@ -347,11 +334,11 @@ export function Navbar({ user }: NavbarProps) {
                     className="rounded-full ring-1 ring-rose-400 object-cover"
                   />
                 ) : user ? (
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-700 text-[11px] font-bold text-white">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-700 text-[11px] font-bold text-white shadow-xs">
                     {initials}
                   </div>
                 ) : (
-                  <User size={21} strokeWidth={2.2} />
+                  <User size={20} strokeWidth={2.2} />
                 )}
               </Link>
             </div>
@@ -359,12 +346,8 @@ export function Navbar({ user }: NavbarProps) {
         </div>
       </header>
 
-      {/* Mobile Drawer ("Hamburger ke andar") */}
-      <MobileMenu
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-        user={user}
-      />
+      {/* Mobile-friendly Bottom Navigation Bar (No sidebar needed) */}
+      <MobileBottomNav user={user} />
 
       {/* Global Search Modal */}
       <SearchModal
