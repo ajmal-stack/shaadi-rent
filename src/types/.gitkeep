@@ -1,0 +1,9 @@
+# Types
+#
+# Shared TypeScript types and interfaces will live here.
+# Example structure (do not create yet):
+#
+# types/
+# ├── database.ts   ← generated Supabase types (future)
+# ├── outfit.ts
+# └── booking.ts

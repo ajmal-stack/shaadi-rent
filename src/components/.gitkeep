@@ -1,0 +1,9 @@
+# Components
+#
+# Shared React components will live here as we build features.
+# Example structure (do not create yet):
+#
+# components/
+# ├── ui/          ← generic UI primitives
+# ├── layout/      ← header, footer, etc.
+# └── ...feature folders as needed

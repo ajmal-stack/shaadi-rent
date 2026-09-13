@@ -1,0 +1,13 @@
+# Supabase Migrations
+#
+# Database migration files will be placed here as we build the schema.
+# Each migration is a timestamped SQL file.
+#
+# Example (do not create yet):
+#   supabase/migrations/20241001000000_create_outfits.sql
+#
+# Run migrations locally:
+#   supabase db push
+#
+# Generate types from schema:
+#   supabase gen types typescript --local > src/types/database.ts
