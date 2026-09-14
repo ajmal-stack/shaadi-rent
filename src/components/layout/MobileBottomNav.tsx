@@ -15,7 +15,7 @@ export function MobileBottomNav({ user }: MobileBottomNavProps) {
 
   const isBrowseActive = pathname.startsWith("/browse");
   const isHowItWorksActive = pathname.startsWith("/how-it-works");
-  const isRentOutfitActive = pathname.startsWith("/rent-your-outfit");
+  const isRentOutfitActive = pathname.startsWith("/rent-your-outfit") || pathname.startsWith("/list-your-outfit");
   const isBookingsActive = pathname.startsWith("/bookings");
   const isAccountActive =
     pathname.startsWith("/account") || pathname.startsWith("/auth");
@@ -32,7 +32,7 @@ export function MobileBottomNav({ user }: MobileBottomNavProps) {
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="fixed bottom-0 left-0 right-0 z-40 block md:hidden border-t border-rose-100/90 bg-white/95 backdrop-blur-lg shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+      className="fixed bottom-0 left-0 right-0 z-40 block md:hidden border-t border-rose-100/90 bg-white/95 backdrop-blur-lg shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)]"
     >
       <div className="mx-auto flex h-16 max-w-md items-center justify-around px-2">
         {/* 1. Browse Outfits */}
@@ -95,7 +95,7 @@ export function MobileBottomNav({ user }: MobileBottomNavProps) {
 
         {/* 3. Rent Your Outfit (Prominent elevated center action) */}
         <Link
-          href="/rent-your-outfit"
+          href={user ? "/list-your-outfit" : "/rent-your-outfit"}
           className="group relative -top-3.5 flex flex-col items-center justify-center transition-transform duration-150 active:scale-95"
         >
           <div

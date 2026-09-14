@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 /**
  * Admin route group layout — runs before every page inside (admin)/.
@@ -32,7 +33,7 @@ export default async function AdminLayout({
   // Fetch role from profiles — the authoritative source of truth.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, full_name, avatar_url")
     .eq("id", user.id)
     .single();
 
@@ -41,5 +42,25 @@ export default async function AdminLayout({
     redirect("/account");
   }
 
-  return <>{children}</>;
+  // Fetch pending applications count for badge
+  const { count: pendingCount } = await supabase
+    .from("owner_applications")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending");
+
+  const adminName =
+    profile?.full_name ??
+    (user.user_metadata?.full_name as string | undefined) ??
+    "Admin";
+
+  return (
+    <AdminSidebar
+      pendingApplications={pendingCount ?? 0}
+      adminName={adminName}
+      adminEmail={user.email ?? ""}
+      adminAvatar={profile?.avatar_url ?? null}
+    >
+      {children}
+    </AdminSidebar>
+  );
 }

@@ -702,6 +702,134 @@ export type Database = {
           },
         ];
       };
+
+      // ── owner_applications ──────────────────────────────────────────────────
+      owner_applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: "draft" | "pending" | "approved" | "rejected";
+          full_name: string | null;
+          email: string | null;
+          phone: string | null;
+          alt_phone: string | null;
+          dob: string | null;
+          gender: "female" | "male" | "other" | "prefer_not_to_say" | null;
+          bio: string | null;
+          phone_verified: boolean;
+          otp_code: string | null;
+          otp_expires_at: string | null;
+          otp_attempts: number;
+          id_type: ("aadhaar" | "passport" | "pan" | "driving_license" | "voter_id") | null;
+          id_number: string | null;
+          id_front_url: string | null;
+          id_back_url: string | null;
+          address_line1: string | null;
+          address_line2: string | null;
+          city: string | null;
+          district: string | null;
+          state: string | null;
+          pincode: string | null;
+          landmark: string | null;
+          agreed_to_terms: boolean;
+          declaration_accepted: boolean;
+          signature_name: string | null;
+          agreed_at: string | null;
+          admin_notes: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          submitted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          status?: "draft" | "pending" | "approved" | "rejected";
+          full_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          alt_phone?: string | null;
+          dob?: string | null;
+          gender?: ("female" | "male" | "other" | "prefer_not_to_say") | null;
+          bio?: string | null;
+          phone_verified?: boolean;
+          otp_code?: string | null;
+          otp_expires_at?: string | null;
+          otp_attempts?: number;
+          id_type?: ("aadhaar" | "passport" | "pan" | "driving_license" | "voter_id") | null;
+          id_number?: string | null;
+          id_front_url?: string | null;
+          id_back_url?: string | null;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          district?: string | null;
+          state?: string | null;
+          pincode?: string | null;
+          landmark?: string | null;
+          agreed_to_terms?: boolean;
+          declaration_accepted?: boolean;
+          signature_name?: string | null;
+          agreed_at?: string | null;
+          admin_notes?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          submitted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          status?: "draft" | "pending" | "approved" | "rejected";
+          full_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          alt_phone?: string | null;
+          dob?: string | null;
+          gender?: ("female" | "male" | "other" | "prefer_not_to_say") | null;
+          bio?: string | null;
+          phone_verified?: boolean;
+          otp_code?: string | null;
+          otp_expires_at?: string | null;
+          otp_attempts?: number;
+          id_type?: ("aadhaar" | "passport" | "pan" | "driving_license" | "voter_id") | null;
+          id_number?: string | null;
+          id_front_url?: string | null;
+          id_back_url?: string | null;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          district?: string | null;
+          state?: string | null;
+          pincode?: string | null;
+          landmark?: string | null;
+          agreed_to_terms?: boolean;
+          declaration_accepted?: boolean;
+          signature_name?: string | null;
+          agreed_at?: string | null;
+          admin_notes?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          submitted_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "owner_applications_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "owner_applications_reviewed_by_fkey";
+            columns: ["reviewed_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
 
     Views: Record<string, never>;
@@ -718,6 +846,18 @@ export type Database = {
       generate_booking_number: {
         Args: Record<string, never>;
         Returns: string;
+      };
+      promote_to_owner: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
+      admin_review_owner_application: {
+        Args: {
+          p_application_id: string;
+          p_action: string;
+          p_notes?: string | null;
+        };
+        Returns: Json;
       };
     };
 
@@ -768,3 +908,9 @@ export type OutfitInsert = Database["public"]["Tables"]["outfits"]["Insert"];
 export type BookingInsert = Database["public"]["Tables"]["bookings"]["Insert"];
 export type ReviewInsert = Database["public"]["Tables"]["reviews"]["Insert"];
 export type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
+export type OwnerApplication =
+  Database["public"]["Tables"]["owner_applications"]["Row"];
+export type OwnerApplicationInsert =
+  Database["public"]["Tables"]["owner_applications"]["Insert"];
+export type OwnerApplicationUpdate =
+  Database["public"]["Tables"]["owner_applications"]["Update"];

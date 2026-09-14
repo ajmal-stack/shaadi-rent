@@ -36,7 +36,19 @@ function GoogleLogo() {
   );
 }
 
-export default function LoginPage() {
+interface LoginPageProps {
+  searchParams: Promise<{ next?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  // Validate next param server-side — only allow internal paths
+  const rawNext = params.next ?? "";
+  const safeNext =
+    rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//")
+      ? rawNext
+      : "";
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-rose-950 via-neutral-900 to-rose-950 px-4 py-16">
       {/* Decorative background rings */}
@@ -62,9 +74,20 @@ export default function LoginPage() {
             ShaadiRent
           </h1>
           <p className="mt-1 text-sm font-medium text-rose-600 tracking-wide uppercase">
-            Wedding Outfits on Rent
+            {safeNext === "/list-your-outfit"
+              ? "List Your Outfit"
+              : "Wedding Outfits on Rent"}
           </p>
         </div>
+
+        {safeNext === "/list-your-outfit" && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+            <p className="font-semibold">Sign in to list your outfit</p>
+            <p className="mt-0.5 text-amber-800/80">
+              You&apos;ll be returned to the listing flow after signing in.
+            </p>
+          </div>
+        )}
 
         {/* Divider */}
         <div className="mb-8 flex items-center gap-3">
@@ -75,6 +98,10 @@ export default function LoginPage() {
 
         {/* Google OAuth form — Server Action, works without JS */}
         <form action={signInWithGoogle}>
+          {/* Pass `next` through as hidden input */}
+          {safeNext && (
+            <input type="hidden" name="next" value={safeNext} />
+          )}
           <button
             type="submit"
             id="google-signin-button"

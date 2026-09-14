@@ -2,6 +2,23 @@ import Link from "next/link";
 import { Calendar, Sparkles, ArrowRight, ShoppingBag } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
+interface BookingItem {
+  id: string;
+  booking_number: string;
+  status: string;
+  payment_status: string;
+  rental_start_date: string;
+  rental_end_date: string;
+  total_amount: number;
+  security_deposit: number;
+  created_at: string;
+  outfits: {
+    id: string;
+    title: string;
+    brand: string | null;
+  } | null;
+}
+
 export default async function BookingsPage() {
   const supabase = await createClient();
   const {
@@ -67,7 +84,7 @@ export default async function BookingsPage() {
         <div className="mt-8">
           {hasBookings ? (
             <div className="space-y-4">
-              {bookings.map((booking: any) => (
+              {bookings.map((booking: BookingItem) => (
                 <div
                   key={booking.id}
                   className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-rose-100/80 bg-white p-5 shadow-xs"

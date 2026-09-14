@@ -9,14 +9,15 @@ import { createClient } from "@/lib/supabase/server";
  *
  *  1. Checks for an `error` param first (user denied access, etc.).
  *  2. Exchanges the code for a Supabase session using the server-side client.
- *  3. On success, redirects to /account (or the `next` param if set).
+ *  3. On success, redirects to `next` param (if provided and safe) or /account.
  *  4. On failure, redirects to /auth/error.
  *
  * Security:
  * - The access/refresh tokens are stored in httpOnly cookies by Supabase —
  *   they are NEVER included in the redirect URL.
  * - We call createClient() (server-side) so cookie-writing is server-controlled.
- * - We never reflect user-supplied query params into the page response body.
+ * - The `next` param is validated to only allow internal paths (must start with /)
+ *   to prevent open redirect attacks.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -25,6 +26,13 @@ export async function GET(request: NextRequest) {
   // Supabase/OAuth providers send an `error` param when the user denies access
   // or something goes wrong on the provider's side.
   const oauthError = searchParams.get("error");
+
+  // Optional next redirect — validated to be a relative internal path only.
+  const nextParam = searchParams.get("next");
+  const safeNext =
+    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : "/account";
 
   if (oauthError) {
     // Do not reflect the OAuth error string into the URL to avoid
@@ -38,8 +46,8 @@ export async function GET(request: NextRequest) {
 
     if (!error) {
       // Session established — handle_new_user() trigger has created/confirmed
-      // the profiles row. Redirect to the protected account page.
-      return NextResponse.redirect(`${origin}/account`);
+      // the profiles row. Redirect to the requested page or /account.
+      return NextResponse.redirect(`${origin}${safeNext}`);
     }
   }
 

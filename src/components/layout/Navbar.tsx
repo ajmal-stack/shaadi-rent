@@ -127,9 +127,9 @@ export function Navbar({ user }: NavbarProps) {
                 </Link>
 
                 <Link
-                  href="/rent-your-outfit"
+                  href={user ? "/list-your-outfit" : "/rent-your-outfit"}
                   className={`group flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                    isLinkActive("/rent-your-outfit")
+                    isLinkActive("/rent-your-outfit") || isLinkActive("/list-your-outfit")
                       ? "bg-amber-50 font-semibold text-amber-950"
                       : "text-gray-700 hover:bg-rose-50/70 hover:text-rose-900"
                   }`}

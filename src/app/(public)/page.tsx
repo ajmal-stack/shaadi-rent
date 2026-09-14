@@ -1,13 +1,34 @@
+import { HeroSection } from "@/components/home/HeroSection";
+import { TrustRibbon } from "@/components/home/TrustRibbon";
+import { BentoGrid } from "@/components/home/BentoGrid";
+import { TrendingOutfits } from "@/components/home/TrendingOutfits";
+import { HowItWorksSteps } from "@/components/home/HowItWorksSteps";
+import { LenderCallout } from "@/components/home/LenderCallout";
+import { TestimonialsSection } from "@/components/home/TestimonialsSection";
+
 export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-white px-4 text-center">
-      <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-        ShaadiRent
-      </h1>
-      <p className="mt-4 text-xl text-gray-600">Wedding Outfits on Rent</p>
-      <p className="mt-2 text-base text-gray-400 italic">
-        Rent. Wear. Return.
-      </p>
+    <main className="min-h-screen bg-white">
+      {/* 1. Cinematic Hero with Interactive Rental Finder */}
+      <HeroSection />
+
+      {/* 2. Trust & Anxiety Reduction Ribbon */}
+      <TrustRibbon />
+
+      {/* 3. 2025-2026 Trend: Curated Bento Box Collections */}
+      <BentoGrid />
+
+      {/* 4. Price Anchoring: Trending Wedding Rentals (Rent vs MRP) */}
+      <TrendingOutfits />
+
+      {/* 5. Seamless 4-Step Rental Timeline */}
+      <HowItWorksSteps />
+
+      {/* 6. Peer-to-Peer Closet Monetization Banner */}
+      <LenderCallout />
+
+      {/* 7. Real Brides & Grooms Social Proof */}
+      <TestimonialsSection />
     </main>
   );
 }

@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 
 /**
  * Owner route group layout — runs before every page inside (owner)/.
@@ -41,5 +43,11 @@ export default async function OwnerLayout({
     redirect("/account");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="flex flex-col min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
+      <Header />
+      <main className="flex-1 flex flex-col">{children}</main>
+      <Footer className="mt-auto" />
+    </div>
+  );
 }

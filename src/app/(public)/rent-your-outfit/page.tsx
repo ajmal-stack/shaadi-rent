@@ -26,7 +26,7 @@ export default function RentYourOutfitPage() {
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
             <Link
-              href="/auth/login?next=/dashboard"
+              href="/list-your-outfit"
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-700 to-rose-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:from-rose-800 hover:to-rose-950 transition-all"
             >
               <PlusCircle size={16} />

@@ -17,16 +17,29 @@ import { headers } from "next/headers";
  *   which Next.js makes available server-side.
  * - Role is NOT set here — the handle_new_user() DB trigger always assigns
  *   'customer'. Admin role requires direct DB intervention.
+ * - The `next` param is validated server-side to be an internal path only.
  */
-export async function signInWithGoogle() {
+export async function signInWithGoogle(formData: FormData) {
   const supabase = await createClient();
   const headersList = await headers();
   const origin = headersList.get("origin") ?? "";
 
+  // Read the `next` param from the form (hidden input) — validate it is internal.
+  const rawNext = formData.get("next")?.toString() ?? "";
+  const safeNext =
+    rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//")
+      ? rawNext
+      : "";
+
+  // Append next to the callback URL so /auth/callback can redirect there.
+  const callbackUrl = safeNext
+    ? `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`
+    : `${origin}/auth/callback`;
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: callbackUrl,
       queryParams: {
         // Request a refresh token so sessions can be extended server-side.
         access_type: "offline",
