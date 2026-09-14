@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition } from "react";
-import { AlertTriangle, CheckCircle2, AlertCircle, X } from "lucide-react";
+import { useState, useMemo, useTransition } from "react";
+import { AlertTriangle, X } from "lucide-react";
+import { toast } from "sonner";
 import { AdminSearch } from "./AdminSearch";
 import { AdminFilterTabs } from "./AdminFilterTabs";
 import { AdminBadge } from "./AdminBadge";
@@ -21,20 +22,6 @@ type DisputeRow = {
   bookings: { id: string; booking_number: string } | null;
   profiles: { id: string; full_name: string | null; email: string | null } | null;
 };
-
-type ToastState = { type: "success" | "error"; message: string } | null;
-
-function AdminToast({ toast }: { toast: ToastState }) {
-  if (!toast) return null;
-  return (
-    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium shadow-2xl border pointer-events-none ${
-      toast.type === "success" ? "bg-stone-900 border-stone-700 text-white" : "bg-rose-900 border-rose-700 text-white"
-    }`}>
-      {toast.type === "success" ? <CheckCircle2 size={15} className="text-emerald-400 shrink-0" /> : <AlertCircle size={15} className="text-rose-300 shrink-0" />}
-      {toast.message}
-    </div>
-  );
-}
 
 function formatCurrency(n: number) {
   return `₹${n.toLocaleString("en-IN")}`;
@@ -56,13 +43,7 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
   const [search, setSearch] = useState("");
   const [resolving, setResolving] = useState<{ id: string; action: "resolved" | "rejected" } | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
-  const [toast, setToast] = useState<ToastState>(null);
   const [isPending, startTransition] = useTransition();
-
-  const showToast = useCallback((type: "success" | "error", msg: string) => {
-    setToast({ type, message: msg });
-    setTimeout(() => setToast(null), 3500);
-  }, []);
 
   const counts = useMemo(() => ({
     all: disputes.length,
@@ -92,9 +73,9 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
       const result = await markDisputeUnderReview(id);
       if (result.success) {
         setDisputes((prev) => prev.map((d) => d.id === id ? { ...d, status: "under_review" as DisputeStatus } : d));
-        showToast("success", "Dispute marked as under review.");
+        toast.success("Dispute marked as under review.");
       } else {
-        showToast("error", result.error ?? "Failed.");
+        toast.error(result.error ?? "Failed.");
       }
     });
   }
@@ -111,11 +92,11 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
               : d
           )
         );
-        showToast("success", `Dispute ${resolving.action}.`);
+        toast.success(`Dispute ${resolving.action}.`);
         setResolving(null);
         setResolutionNotes("");
       } else {
-        showToast("error", result.error ?? "Failed.");
+        toast.error(result.error ?? "Failed.");
       }
     });
   }
@@ -266,8 +247,6 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
       {filtered.length > 0 && (
         <p className="text-xs text-stone-400 text-right">Showing {filtered.length} of {disputes.length} disputes</p>
       )}
-
-      <AdminToast toast={toast} />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition } from "react";
-import { Star, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState, useMemo, useTransition } from "react";
+import { Star, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { AdminSearch } from "./AdminSearch";
 import { AdminFilterTabs } from "./AdminFilterTabs";
 import { AdminEmptyState } from "./AdminEmptyState";
@@ -15,20 +16,6 @@ type ReviewRow = {
   reviewer: { id: string; full_name: string | null } | null;
   outfit: { id: string; title: string } | null;
 };
-
-type ToastState = { type: "success" | "error"; message: string } | null;
-
-function AdminToast({ toast }: { toast: ToastState }) {
-  if (!toast) return null;
-  return (
-    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium shadow-2xl border pointer-events-none ${
-      toast.type === "success" ? "bg-stone-900 border-stone-700 text-white" : "bg-rose-900 border-rose-700 text-white"
-    }`}>
-      {toast.type === "success" ? <CheckCircle2 size={15} className="text-emerald-400 shrink-0" /> : <AlertCircle size={15} className="text-rose-300 shrink-0" />}
-      {toast.message}
-    </div>
-  );
-}
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -64,13 +51,7 @@ export function ReviewsClient({ initialReviews }: ReviewsClientProps) {
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [toast, setToast] = useState<ToastState>(null);
   const [isPending, startTransition] = useTransition();
-
-  const showToast = useCallback((type: "success" | "error", msg: string) => {
-    setToast({ type, message: msg });
-    setTimeout(() => setToast(null), 3500);
-  }, []);
 
   const avgRating = useMemo(() => {
     if (!reviews.length) return 0;
@@ -109,9 +90,9 @@ export function ReviewsClient({ initialReviews }: ReviewsClientProps) {
       const result = await deleteReview(id);
       if (result.success) {
         setReviews((prev) => prev.filter((r) => r.id !== id));
-        showToast("success", "Review deleted.");
+        toast.success("Review deleted.");
       } else {
-        showToast("error", result.error ?? "Failed to delete.");
+        toast.error(result.error ?? "Failed to delete.");
       }
       setConfirmDelete(null);
     });
@@ -255,8 +236,6 @@ export function ReviewsClient({ initialReviews }: ReviewsClientProps) {
           Showing {filtered.length} of {reviews.length} reviews
         </p>
       )}
-
-      <AdminToast toast={toast} />
     </div>
   );
 }

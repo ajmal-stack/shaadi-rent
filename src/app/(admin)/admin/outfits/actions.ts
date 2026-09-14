@@ -31,7 +31,11 @@ export async function updateOutfitVerification(
   const { supabase, error: authError } = await verifyAdmin();
   if (!supabase) return { success: false, error: authError };
 
-  const updateData: Record<string, unknown> = {
+  const updateData: {
+    verification_status: OutfitVerificationStatus;
+    updated_at: string;
+    status?: "published" | "paused";
+  } = {
     verification_status: verificationStatus,
     updated_at: new Date().toISOString(),
   };

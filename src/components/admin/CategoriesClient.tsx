@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition } from "react";
-import { FolderOpen, Plus, X, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Pencil } from "lucide-react";
+import { useState, useMemo, useTransition } from "react";
+import { FolderOpen, Plus, X, ToggleLeft, ToggleRight, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { AdminBadge } from "./AdminBadge";
 import { AdminEmptyState } from "./AdminEmptyState";
 import { AdminSearch } from "./AdminSearch";
@@ -10,20 +11,6 @@ import type { Category, GenderType } from "@/types/database";
 
 interface CategoryWithCount extends Category {
   outfit_count: number;
-}
-
-type ToastState = { type: "success" | "error"; message: string } | null;
-
-function AdminToast({ toast }: { toast: ToastState }) {
-  if (!toast) return null;
-  return (
-    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium shadow-2xl border pointer-events-none ${
-      toast.type === "success" ? "bg-stone-900 border-stone-700 text-white" : "bg-rose-900 border-rose-700 text-white"
-    }`}>
-      {toast.type === "success" ? <CheckCircle2 size={15} className="text-emerald-400 shrink-0" /> : <AlertCircle size={15} className="text-rose-300 shrink-0" />}
-      {toast.message}
-    </div>
-  );
 }
 
 const GENDER_LABELS: Record<GenderType, string> = {
@@ -50,13 +37,7 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
-  const [toast, setToast] = useState<ToastState>(null);
   const [isPending, startTransition] = useTransition();
-
-  const showToast = useCallback((type: "success" | "error", msg: string) => {
-    setToast({ type, message: msg });
-    setTimeout(() => setToast(null), 3500);
-  }, []);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return categories;
@@ -73,9 +54,9 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
         setCategories((prev) =>
           prev.map((c) => (c.id === id ? { ...c, is_active: !currentActive } : c))
         );
-        showToast("success", `Category ${!currentActive ? "activated" : "deactivated"}.`);
+        toast.success(`Category ${!currentActive ? "activated" : "deactivated"}.`);
       } else {
-        showToast("error", result.error ?? "Failed.");
+        toast.error(result.error ?? "Failed.");
       }
     });
   }
@@ -89,7 +70,7 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
         description: form.description || undefined,
       });
       if (result.success) {
-        showToast("success", "Category created successfully.");
+        toast.success("Category created successfully.");
         setShowCreateForm(false);
         setForm(DEFAULT_FORM);
         // Optimistic — server will revalidate
@@ -110,7 +91,7 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
           },
         ]);
       } else {
-        showToast("error", result.error ?? "Failed to create.");
+        toast.error(result.error ?? "Failed to create.");
       }
     });
   }
@@ -131,11 +112,11 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
               : c
           )
         );
-        showToast("success", "Category updated.");
+        toast.success("Category updated.");
         setEditingId(null);
         setForm(DEFAULT_FORM);
       } else {
-        showToast("error", result.error ?? "Failed to update.");
+        toast.error(result.error ?? "Failed to update.");
       }
     });
   }
@@ -284,8 +265,6 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
           </div>
         )}
       </div>
-
-      <AdminToast toast={toast} />
     </div>
   );
 }

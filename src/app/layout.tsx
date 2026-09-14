@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
         className="min-h-screen flex flex-col bg-white text-gray-900 antialiased"
       >
+        <Toaster richColors position="top-right" closeButton />
         {children}
       </body>
     </html>

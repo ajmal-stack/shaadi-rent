@@ -19,6 +19,7 @@ import {
   Eye,
 } from "lucide-react";
 import { adminReviewApplicationAction } from "@/app/(admin)/admin/applications/actions";
+import { toast } from "sonner";
 import type { OwnerApplication } from "@/types/database";
 
 interface ApplicationReviewClientProps {
@@ -96,10 +97,11 @@ export function ApplicationReviewClient({
 
       if (res.error) {
         setActionError(res.error);
+        toast.error(res.error);
       } else {
-        setActionSuccess(
-          `Application successfully ${action === "approved" ? "approved! User promoted to owner." : "rejected."}`
-        );
+        const msg = `Application successfully ${action === "approved" ? "approved! User promoted to owner." : "rejected."}`;
+        setActionSuccess(msg);
+        toast.success(msg);
 
         // Update local list state
         const updatedList = applications.map((a) =>

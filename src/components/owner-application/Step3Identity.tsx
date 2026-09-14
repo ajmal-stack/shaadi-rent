@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck, AlertCircle, ArrowRight, ArrowLeft, Lock } from "lucide-react";
+import { ShieldCheck, AlertCircle, ArrowRight, ArrowLeft, Lock, ChevronDown, Check } from "lucide-react";
 import { ID_TYPES } from "./constants";
 import { DocUploader } from "./DocUploader";
 import type { ApplicationFormData } from "@/app/(public)/become-an-owner/actions";
@@ -24,6 +24,7 @@ export function Step3Identity({
   const [idType, setIdType] = useState<ApplicationFormData["id_type"]>(
     data.id_type || "aadhaar"
   );
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [idNumber, setIdNumber] = useState(data.id_number || "");
   const [frontUrl, setFrontUrl] = useState(data.id_front_url || "");
   const [backUrl, setBackUrl] = useState(data.id_back_url || "");

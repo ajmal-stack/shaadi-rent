@@ -13,6 +13,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { AdminSearch } from "./AdminSearch";
 import { AdminFilterTabs } from "./AdminFilterTabs";
 import { AdminBadge } from "./AdminBadge";
@@ -59,28 +60,6 @@ function AvatarChip({ name, role }: { name: string | null; role: UserRole }) {
   );
 }
 
-// ---- Inline Toast ----
-type ToastState = { type: "success" | "error"; message: string } | null;
-function AdminToast({ toast }: { toast: ToastState }) {
-  if (!toast) return null;
-  return (
-    <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium shadow-2xl border pointer-events-none animate-in slide-in-from-bottom-4 duration-300 ${
-        toast.type === "success"
-          ? "bg-stone-900 border-stone-700 text-white"
-          : "bg-rose-900 border-rose-700 text-white"
-      }`}
-    >
-      {toast.type === "success" ? (
-        <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
-      ) : (
-        <AlertCircle size={15} className="text-rose-300 shrink-0" />
-      )}
-      {toast.message}
-    </div>
-  );
-}
-
 export function UsersClient({ initialUsers }: UsersClientProps) {
   const [users, setUsers] = useState<Profile[]>(initialUsers);
   const [filter, setFilter] = useState<RoleFilter>("all");
@@ -90,13 +69,7 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
     userId: string;
     newRole: "customer" | "owner";
   } | null>(null);
-  const [toast, setToast] = useState<ToastState>(null);
   const [isPending, startTransition] = useTransition();
-
-  const showToast = useCallback((type: "success" | "error", message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3500);
-  }, []);
 
   const counts = useMemo(
     () => ({
@@ -130,9 +103,9 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
         setUsers((prev) =>
           prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
         );
-        showToast("success", `Role updated to ${newRole} successfully.`);
+        toast.success(`Role updated to ${newRole} successfully.`);
       } else {
-        showToast("error", result.error ?? "Failed to update role.");
+        toast.error(result.error ?? "Failed to update role.");
       }
       setConfirmRoleChange(null);
     });
@@ -402,8 +375,6 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
           Showing {filtered.length} of {users.length} users
         </p>
       )}
-
-      <AdminToast toast={toast} />
     </div>
   );
 }

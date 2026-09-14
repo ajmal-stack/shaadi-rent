@@ -74,7 +74,7 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
 
   const stats = useMemo(() => {
     const successful = initialPayments.filter(
-      (p) => p.status === "successful" || p.status === "paid"
+      (p) => p.status === "successful" || (p.status as string) === "paid"
     );
     const pending = initialPayments.filter((p) => p.status === "pending" || p.status === "created");
     const failed = initialPayments.filter((p) => p.status === "failed");

@@ -1,41 +1,18 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   Settings,
   Percent,
   CreditCard,
   Shield,
   Bell,
-  CheckCircle2,
-  AlertCircle,
   Save,
   RotateCcw,
   Sliders,
   Lock,
 } from "lucide-react";
-
-type ToastState = { type: "success" | "error"; message: string } | null;
-
-function AdminToast({ toast }: { toast: ToastState }) {
-  if (!toast) return null;
-  return (
-    <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium shadow-2xl border pointer-events-none animate-in slide-in-from-bottom-4 duration-300 ${
-        toast.type === "success"
-          ? "bg-stone-900 border-stone-700 text-white"
-          : "bg-rose-900 border-rose-700 text-white"
-      }`}
-    >
-      {toast.type === "success" ? (
-        <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
-      ) : (
-        <AlertCircle size={15} className="text-rose-300 shrink-0" />
-      )}
-      {toast.message}
-    </div>
-  );
-}
+import { toast } from "sonner";
 
 interface SettingsState {
   // Fees
@@ -83,31 +60,24 @@ type TabType = "general" | "payments" | "security" | "notifications";
 export function SettingsClient() {
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
-  const [toast, setToast] = useState<ToastState>(null);
   const [isPending, startTransition] = useTransition();
-
-  const showToast = useCallback((type: "success" | "error", message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3500);
-  }, []);
 
   const handleSave = () => {
     startTransition(() => {
       // Simulate save
       setTimeout(() => {
-        showToast("success", "Platform settings updated successfully");
+        toast.success("Platform settings updated successfully");
       }, 400);
     });
   };
 
   const handleReset = () => {
     setSettings(DEFAULT_SETTINGS);
-    showToast("success", "Settings restored to default configuration");
+    toast.success("Settings restored to default configuration");
   };
 
   return (
     <div className="space-y-6">
-      <AdminToast toast={toast} />
 
       {/* Tabs */}
       <div className="flex border-b border-stone-200 overflow-x-auto gap-2">
