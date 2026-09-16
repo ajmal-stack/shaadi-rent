@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition } from "react";
+import { useState, useMemo, useCallback, useTransition, Fragment } from "react";
 import {
   Users,
   Mail,
@@ -18,7 +18,7 @@ import { AdminSearch } from "./AdminSearch";
 import { AdminFilterTabs } from "./AdminFilterTabs";
 import { AdminBadge } from "./AdminBadge";
 import { AdminEmptyState } from "./AdminEmptyState";
-import { updateUserRole } from "@/app/(admin)/admin/users/actions";
+import { updateUserRole, updateUserVerification } from "@/app/(admin)/admin/users/actions";
 import type { Profile, UserRole } from "@/types/database";
 
 interface UsersClientProps {
@@ -111,6 +111,25 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
     });
   }
 
+  async function handleVerificationChange(
+    userId: string,
+    status: "pending" | "verified" | "rejected"
+  ) {
+    startTransition(async () => {
+      const result = await updateUserVerification(userId, status);
+      if (result.success) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, verification_status: status } : u
+          )
+        );
+        toast.success(`Verification status updated to ${status}.`);
+      } else {
+        toast.error(result.error ?? "Failed to update verification status.");
+      }
+    });
+  }
+
   const tabs = [
     { value: "all", label: "All Users", count: counts.all },
     { value: "customer", label: "Customers", count: counts.customer },
@@ -173,9 +192,8 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
                   const isExpanded = expandedId === user.id;
                   const isConfirming = confirmRoleChange?.userId === user.id;
                   return (
-                    <>
+                    <Fragment key={user.id}>
                       <tr
-                        key={user.id}
                         className="hover:bg-stone-50/60 transition-colors"
                       >
                         {/* Name */}
@@ -306,7 +324,7 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
                       </tr>
                       {/* Expanded detail row */}
                       {isExpanded && (
-                        <tr key={`${user.id}-expanded`} className="bg-stone-50/60">
+                        <tr className="bg-stone-50/60">
                           <td colSpan={6} className="px-4 py-4">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                               <div>
@@ -321,13 +339,31 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
                                 <p className="text-stone-400 font-semibold mb-0.5">
                                   Email
                                 </p>
-                                <p className="text-stone-700">{user.email ?? "—"}</p>
+                                {user.email ? (
+                                  <a
+                                    href={`mailto:${user.email}`}
+                                    className="text-stone-700 hover:text-stone-950 underline decoration-stone-300 break-all"
+                                  >
+                                    {user.email}
+                                  </a>
+                                ) : (
+                                  <p className="text-stone-400">—</p>
+                                )}
                               </div>
                               <div>
                                 <p className="text-stone-400 font-semibold mb-0.5">
                                   Phone
                                 </p>
-                                <p className="text-stone-700">{user.phone ?? "—"}</p>
+                                {user.phone ? (
+                                  <a
+                                    href={`tel:${user.phone}`}
+                                    className="text-stone-700 hover:text-stone-950 underline decoration-stone-300"
+                                  >
+                                    {user.phone}
+                                  </a>
+                                ) : (
+                                  <p className="text-stone-400">—</p>
+                                )}
                               </div>
                               <div>
                                 <p className="text-stone-400 font-semibold mb-0.5">
@@ -341,12 +377,11 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
                               </div>
                               <div>
                                 <p className="text-stone-400 font-semibold mb-0.5">
-                                  Verification
+                                  Joined Date
                                 </p>
-                                <AdminBadge
-                                  status={user.verification_status}
-                                  size="xs"
-                                />
+                                <p className="text-stone-700">
+                                  {formatDate(user.created_at)}
+                                </p>
                               </div>
                               <div>
                                 <p className="text-stone-400 font-semibold mb-0.5">
@@ -356,11 +391,67 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
                                   {formatDate(user.updated_at)}
                                 </p>
                               </div>
+                              <div>
+                                <p className="text-stone-400 font-semibold mb-0.5">
+                                  Verification
+                                </p>
+                                <div className="mt-0.5">
+                                  <AdminBadge
+                                    status={user.verification_status}
+                                    size="xs"
+                                  />
+                                </div>
+                              </div>
+                              {user.role !== "admin" && (
+                                <div>
+                                  <p className="text-stone-400 font-semibold mb-0.5">
+                                    Update Status
+                                  </p>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    {user.verification_status !== "verified" && (
+                                      <button
+                                        type="button"
+                                        disabled={isPending}
+                                        onClick={() =>
+                                          handleVerificationChange(user.id, "verified")
+                                        }
+                                        className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+                                      >
+                                        Verify
+                                      </button>
+                                    )}
+                                    {user.verification_status !== "rejected" && (
+                                      <button
+                                        type="button"
+                                        disabled={isPending}
+                                        onClick={() =>
+                                          handleVerificationChange(user.id, "rejected")
+                                        }
+                                        className="text-[11px] font-semibold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+                                      >
+                                        Reject
+                                      </button>
+                                    )}
+                                    {user.verification_status !== "pending" && (
+                                      <button
+                                        type="button"
+                                        disabled={isPending}
+                                        onClick={() =>
+                                          handleVerificationChange(user.id, "pending")
+                                        }
+                                        className="text-[11px] text-stone-500 hover:text-stone-800 hover:bg-stone-200 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+                                      >
+                                        Reset
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>

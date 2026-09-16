@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { CustomSelect } from "@/components/ui/CustomSelect";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 const CITIES = [
   { value: "All India", label: "All India" },
@@ -105,20 +106,15 @@ export function HeroSection() {
                 />
 
                 {/* 3. Event Date */}
-                <div className="flex items-center gap-2.5 rounded-2xl bg-stone-50/80 px-3.5 py-2.5 border border-stone-100 hover:border-rose-200 transition-colors">
-                  <Calendar size={16} className="text-rose-700 shrink-0" />
-                  <div className="text-left w-full">
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                      Wedding Date
-                    </label>
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full bg-transparent text-xs sm:text-sm font-semibold text-stone-800 focus:outline-none cursor-pointer"
-                    />
-                  </div>
-                </div>
+                <DatePicker
+                  value={date}
+                  onChange={setDate}
+                  label="Wedding Date"
+                  placeholder="Select Date"
+                  icon={<Calendar size={16} className="text-rose-700 shrink-0" />}
+                  minDate={new Date()}
+                  showPresets
+                />
 
                 {/* Submit Action (Spans full width) */}
                 <div className="sm:col-span-3 pt-1">

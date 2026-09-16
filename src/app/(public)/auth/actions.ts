@@ -13,8 +13,8 @@ import { headers } from "next/headers";
  *
  * Security:
  * - No client secrets are read here — Supabase handles the OAuth dance.
- * - The redirectTo URL is derived from the request `origin` header,
- *   which Next.js makes available server-side.
+ * - The redirectTo URL is derived from NEXT_PUBLIC_SITE_URL (set per
+ *   environment) so localhost dev and production Vercel never cross-pollinate.
  * - Role is NOT set here — the handle_new_user() DB trigger always assigns
  *   'customer'. Admin role requires direct DB intervention.
  * - The `next` param is validated server-side to be an internal path only.
@@ -22,7 +22,27 @@ import { headers } from "next/headers";
 export async function signInWithGoogle(formData: FormData) {
   const supabase = await createClient();
   const headersList = await headers();
-  const origin = headersList.get("origin") ?? "";
+
+  // NEXT_PUBLIC_SITE_URL must be set per environment:
+  //   .env.local       → http://localhost:3000
+  //   Vercel (prod)    → https://your-production-domain.com
+  // This prevents Supabase from defaulting to the production site URL
+  // and inadvertently routing the OAuth code back to Vercel when on localhost.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
+  const host =
+    headersList.get("x-forwarded-host") ||
+    headersList.get("host") ||
+    "localhost:3000";
+  const proto =
+    headersList.get("x-forwarded-proto") ||
+    (host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https");
+
+  // Prefer explicit NEXT_PUBLIC_SITE_URL, then origin header, then host header.
+  const origin =
+    siteUrl ||
+    headersList.get("origin") ||
+    `${proto}://${host}`;
 
   // Read the `next` param from the form (hidden input) — validate it is internal.
   const rawNext = formData.get("next")?.toString() ?? "";

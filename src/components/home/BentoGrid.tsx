@@ -44,6 +44,7 @@ export function BentoGrid() {
               src="/images/bridal_lehenga.jpg"
               alt="Bridal Lehengas Collection"
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 66vw, 50vw"
               className="object-cover object-top transition-transform duration-700 group-hover:scale-105 opacity-85 group-hover:opacity-95"
             />
             {/* Gradient Scrim */}
@@ -79,6 +80,7 @@ export function BentoGrid() {
               src="/images/groom_sherwani.jpg"
               alt="Groom Sherwanis Collection"
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover object-top transition-transform duration-700 group-hover:scale-105 opacity-85 group-hover:opacity-95"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-transparent" />
@@ -108,6 +110,7 @@ export function BentoGrid() {
               src="/images/reception_gown.jpg"
               alt="Reception Gowns Collection"
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover object-top transition-transform duration-700 group-hover:scale-105 opacity-85 group-hover:opacity-95"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-transparent" />
@@ -137,6 +140,7 @@ export function BentoGrid() {
               src="/images/haldi_outfit.jpg"
               alt="Haldi and Mehendi Outfits"
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover object-top transition-transform duration-700 group-hover:scale-105 opacity-85 group-hover:opacity-95"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-transparent" />

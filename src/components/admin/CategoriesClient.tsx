@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, Fragment } from "react";
 import { FolderOpen, Plus, X, ToggleLeft, ToggleRight, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { AdminBadge } from "./AdminBadge";
@@ -192,8 +192,8 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
               </thead>
               <tbody className="divide-y divide-stone-100">
                 {filtered.map((cat) => (
-                  <>
-                    <tr key={cat.id} className="hover:bg-stone-50/60 transition-colors">
+                  <Fragment key={cat.id}>
+                    <tr className="hover:bg-stone-50/60 transition-colors">
                       <td className="px-4 py-3">
                         <p className="text-sm font-semibold text-stone-900">{cat.name}</p>
                         {cat.description && (
@@ -237,7 +237,7 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
                     </tr>
                     {/* Edit form row */}
                     {editingId === cat.id && (
-                      <tr key={`${cat.id}-edit`} className="bg-stone-50/80">
+                      <tr className="bg-stone-50/80">
                         <td colSpan={6} className="px-4 py-4">
                           <div className="space-y-3">
                             <CategoryForm form={form} setForm={setForm} />
@@ -258,7 +258,7 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

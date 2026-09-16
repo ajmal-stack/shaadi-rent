@@ -14,10 +14,12 @@ import {
 } from "lucide-react";
 import { CheckDatesModal } from "./CheckDatesModal";
 import { AvailabilityWindow } from "./OutfitAvailability";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 interface OutfitActionCardProps {
   outfit: {
     id: string;
+    owner_id: string;
     title: string;
     brand: string | null;
     rental_price: number;
@@ -91,10 +93,13 @@ export function OutfitActionCard({ outfit, availability = [] }: OutfitActionCard
   // Delivery & Return strings
   let deliveryDateStr = "";
   let returnDateStr = "";
+  let rentalStartDate = "";
+  let rentalEndDate = "";
   if (eventDate && currentCheck?.isAvailable) {
     const d = new Date(eventDate);
     const del = new Date(d);
     del.setDate(del.getDate() - 2);
+    rentalStartDate = del.toISOString().slice(0, 10);
     deliveryDateStr = del.toLocaleDateString("en-IN", {
       month: "short",
       day: "numeric",
@@ -103,6 +108,7 @@ export function OutfitActionCard({ outfit, availability = [] }: OutfitActionCard
 
     const ret = new Date(d);
     ret.setDate(ret.getDate() + 1);
+    rentalEndDate = ret.toISOString().slice(0, 10);
     returnDateStr = ret.toLocaleDateString("en-IN", {
       month: "short",
       day: "numeric",
@@ -290,22 +296,14 @@ export function OutfitActionCard({ outfit, availability = [] }: OutfitActionCard
           <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600">
             Select Wedding / Event Date
           </label>
-          <div className="relative">
-            <input
-              ref={dateInputRef}
-              type="date"
-              min={tomorrowStr}
-              value={eventDate}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className={`w-full rounded-xl border px-3.5 py-2.5 text-xs sm:text-sm font-semibold transition-all focus:outline-none cursor-pointer ${
-                dateError
-                  ? "border-rose-400 bg-rose-50/50 text-rose-950 focus:ring-2 focus:ring-rose-200"
-                  : isDateValidAndAvailable
-                  ? "border-emerald-300 bg-emerald-50/30 text-stone-900 focus:ring-2 focus:ring-emerald-200"
-                  : "border-stone-200 bg-stone-50/70 text-stone-800 hover:bg-white focus:ring-2 focus:ring-rose-100"
-              }`}
-            />
-          </div>
+          <DatePicker
+            value={eventDate}
+            onChange={handleDateChange}
+            placeholder="Select Wedding / Event Date"
+            minDate={tomorrow}
+            showPresets
+            error={dateError || undefined}
+          />
 
           {/* Validation Feedback */}
           {dateError && (
@@ -369,16 +367,20 @@ export function OutfitActionCard({ outfit, availability = [] }: OutfitActionCard
         </div>
       </div>
 
-      {/* Booking Preparation Notice Modal (Zero DB booking creation) */}
+      {/* Booking Confirmation Modal */}
       <CheckDatesModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        outfitId={outfit.id}
+        ownerId={outfit.owner_id}
         outfitTitle={outfit.title}
         rentalPrice={outfit.rental_price}
         securityDeposit={outfit.security_deposit}
         selectedDate={eventDate}
         deliveryDateStr={deliveryDateStr}
         returnDateStr={returnDateStr}
+        rentalStartDate={rentalStartDate}
+        rentalEndDate={rentalEndDate}
       />
     </>
   );

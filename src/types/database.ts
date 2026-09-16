@@ -391,6 +391,8 @@ export type Database = {
           total_amount: number;
           status: BookingStatus;
           payment_status: BookingPaymentStatus;
+          delivery_address: Json | null;
+          booking_notes: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -410,6 +412,8 @@ export type Database = {
           total_amount: number;
           status?: BookingStatus;
           payment_status?: BookingPaymentStatus;
+          delivery_address?: Json | null;
+          booking_notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -830,6 +834,41 @@ export type Database = {
           },
         ];
       };
+
+      // ── booking_events ───────────────────────────────────────────────────────
+      booking_events: {
+        Row: {
+          id: string;
+          booking_id: string;
+          status: string;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          status: string;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          status?: string;
+          note?: string | null;
+          created_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "booking_events_booking_id_fkey";
+            columns: ["booking_id"];
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
 
     Views: Record<string, never>;
@@ -899,6 +938,27 @@ export type BookingStatusHistory =
 export type Payment = Database["public"]["Tables"]["payments"]["Row"];
 export type Review = Database["public"]["Tables"]["reviews"]["Row"];
 export type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
+
+/** Booking event audit log row — from booking_events table (migration 0011) */
+export interface BookingEvent {
+  id: string;
+  booking_id: string;
+  status: string;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+/** Delivery address shape stored as JSONB in bookings.delivery_address */
+export interface DeliveryAddress {
+  full_name: string;
+  phone: string;
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
 export type InspectionReport =
   Database["public"]["Tables"]["inspection_reports"]["Row"];
 

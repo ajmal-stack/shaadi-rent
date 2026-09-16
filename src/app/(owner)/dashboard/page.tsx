@@ -18,6 +18,7 @@ import {
   ArrowRight,
   XCircle,
   BarChart3,
+  CalendarCheck,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -139,14 +140,23 @@ export default async function OwnerDashboardPage() {
               </p>
             </div>
           </div>
-          <Link
-            href="/list-your-outfit/details"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-700 to-rose-900 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:from-rose-800 hover:to-rose-950 hover:shadow transition-all active:scale-[0.98]"
-          >
-            <PlusCircle size={15} />
-            <span className="hidden sm:inline">List New Outfit</span>
-            <span className="sm:hidden">New</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/requests"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors"
+            >
+              <CalendarCheck size={14} className="text-rose-700" />
+              <span className="hidden sm:inline">Bookings</span>
+            </Link>
+            <Link
+              href="/list-your-outfit/details"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-700 to-rose-900 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:from-rose-800 hover:to-rose-950 hover:shadow transition-all active:scale-[0.98]"
+            >
+              <PlusCircle size={15} />
+              <span className="hidden sm:inline">List New Outfit</span>
+              <span className="sm:hidden">New</span>
+            </Link>
+          </div>
         </div>
       </div>
 

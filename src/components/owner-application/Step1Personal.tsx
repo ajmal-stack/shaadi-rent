@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { User, Mail, Phone, Calendar, AlertCircle, ArrowRight } from "lucide-react";
+import { DatePicker } from "@/components/ui/DatePicker";
 import type { ApplicationFormData } from "@/app/(public)/become-an-owner/actions";
 
 interface Step1Props {
@@ -197,30 +198,16 @@ export function Step1Personal({ data, userEmail, onUpdate, onNext }: Step1Props)
             <label className="block text-sm font-semibold text-stone-700 mb-1.5">
               Date of Birth <span className="text-rose-600">*</span>
             </label>
-            <div className="relative">
-              <Calendar
-                size={18}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"
-              />
-              <input
-                type="date"
-                required
-                max={new Date().toISOString().split("T")[0]}
-                value={dob}
-                onChange={(e) => {
-                  setDob(e.target.value);
-                  if (errors.dob) setErrors((prev) => ({ ...prev, dob: "" }));
-                }}
-                className={`w-full rounded-xl border pl-10 pr-4 py-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-rose-800/20 transition-all ${
-                  errors.dob ? "border-rose-400 bg-rose-50/20" : "border-stone-200"
-                }`}
-              />
-            </div>
-            {errors.dob && (
-              <p className="mt-1.5 flex items-center gap-1 text-xs text-rose-600">
-                <AlertCircle size={13} /> {errors.dob}
-              </p>
-            )}
+            <DatePicker
+              value={dob}
+              onChange={(val) => {
+                setDob(val);
+                if (errors.dob) setErrors((prev) => ({ ...prev, dob: "" }));
+              }}
+              placeholder="Select Date of Birth"
+              maxDate={new Date()}
+              error={errors.dob}
+            />
           </div>
 
           <div>

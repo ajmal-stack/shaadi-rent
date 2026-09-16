@@ -179,15 +179,15 @@ function NavItemRow({
         transition-all duration-200 select-none
         ${
           isActive
-            ? "bg-gradient-to-r from-rose-950/70 via-rose-900/35 to-rose-900/10 text-white shadow-sm ring-1 ring-rose-700/30"
-            : "text-stone-300 hover:bg-white/[0.06] hover:text-white"
+            ? "bg-rose-50 text-rose-950 font-semibold shadow-2xs ring-1 ring-rose-200/80"
+            : "text-stone-600 hover:bg-stone-100/80 hover:text-stone-950"
         }
         ${collapsed ? "justify-center px-2" : ""}
       `}
     >
       {/* Active Left Indicator Bar */}
       {isActive && (
-        <span className="absolute -left-1 top-1.5 bottom-1.5 w-1 rounded-r-full bg-gradient-to-b from-amber-400 via-rose-500 to-rose-600 shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
+        <span className="absolute -left-1 top-1.5 bottom-1.5 w-1 rounded-r-full bg-gradient-to-b from-rose-600 to-amber-500 shadow-[0_0_6px_rgba(225,29,72,0.35)]" />
       )}
 
       {/* Icon with active highlight */}
@@ -195,28 +195,28 @@ function NavItemRow({
         size={18}
         className={`shrink-0 transition-transform duration-200 group-hover:scale-110 ${
           isActive
-            ? "text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]"
-            : "text-stone-400 group-hover:text-amber-300"
+            ? "text-rose-700"
+            : "text-stone-400 group-hover:text-stone-700"
         }`}
       />
 
       {/* Expanded Label */}
       {!collapsed && (
-        <span className="flex-1 truncate tracking-tight font-medium">
+        <span className="flex-1 truncate tracking-tight">
           {item.label}
         </span>
       )}
 
       {/* Expanded Badge */}
       {item.badge != null && item.badge > 0 && !collapsed && (
-        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-1.5 text-[10px] font-extrabold text-stone-950 shadow-xs shadow-amber-950/40 animate-pulse">
+        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-rose-600 to-rose-700 px-1.5 text-[10px] font-bold text-white shadow-xs animate-pulse">
           {item.badge > 99 ? "99+" : item.badge}
         </span>
       )}
 
       {/* Collapsed Dot/Mini Badge */}
       {item.badge != null && item.badge > 0 && collapsed && (
-        <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-[9px] font-extrabold text-stone-950 ring-2 ring-stone-950 shadow-sm animate-pulse">
+        <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-rose-600 to-rose-700 text-[9px] font-bold text-white ring-2 ring-white shadow-xs animate-pulse">
           {item.badge > 9 ? "9+" : item.badge}
         </span>
       )}
@@ -227,7 +227,7 @@ function NavItemRow({
           <div className="flex items-center gap-2 whitespace-nowrap rounded-lg bg-stone-900/95 px-3 py-1.5 text-xs font-semibold text-white shadow-xl ring-1 ring-stone-700/80 backdrop-blur-md">
             <span>{item.label}</span>
             {item.badge != null && item.badge > 0 && (
-              <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-500/30">
+              <span className="rounded-full bg-rose-500/30 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-500/40">
                 {item.badge}
               </span>
             )}
@@ -322,11 +322,11 @@ export function AdminSidebar({
     const isCollapsed = isDrawer ? false : collapsed;
 
     return (
-      <div className="flex h-full flex-col justify-between overflow-hidden bg-stone-950 text-stone-300">
+      <div className="flex h-full flex-col justify-between overflow-hidden bg-white text-stone-700">
         {/* Top Header / Branding */}
         <div className="flex flex-col shrink-0">
           <div
-            className={`flex items-center gap-3 px-4 py-4.5 border-b border-white/[0.08] ${
+            className={`flex items-center gap-3 px-4 py-4.5 border-b border-stone-200/80 ${
               isCollapsed ? "justify-center px-2" : "justify-between"
             }`}
           >
@@ -337,21 +337,21 @@ export function AdminSidebar({
               }`}
             >
               {/* Brand Ring Emblem */}
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-600 via-rose-800 to-rose-950 text-lg shadow-md shadow-rose-950/60 ring-1 ring-amber-400/40 transition-transform group-hover:scale-105">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-600 via-rose-700 to-rose-900 text-lg shadow-sm shadow-rose-900/15 ring-1 ring-rose-300/40 transition-transform group-hover:scale-105">
                 💍
               </div>
 
               {!isCollapsed && (
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-display text-base font-bold text-white leading-none tracking-tight">
+                    <span className="font-display text-base font-bold text-stone-950 leading-none tracking-tight">
                       ShaadiRent
                     </span>
-                    <Sparkles size={12} className="text-amber-400 shrink-0" />
+                    <Sparkles size={12} className="text-amber-500 shrink-0" />
                   </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/90 leading-none">
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-rose-800 leading-none">
                       Admin Console
                     </span>
                   </div>
@@ -364,7 +364,7 @@ export function AdminSidebar({
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.06] text-stone-400 hover:text-white hover:bg-white/[0.12] transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-stone-100 text-stone-500 hover:text-stone-900 hover:bg-stone-200 transition-colors"
                 aria-label="Close admin menu"
               >
                 <X size={18} />
@@ -380,14 +380,14 @@ export function AdminSidebar({
               <div key={gi} className="space-y-1">
                 {/* Group Heading (expanded only) */}
                 {group.title && !isCollapsed && (
-                  <p className="px-3 pt-1 text-[10px] font-bold uppercase tracking-wider text-stone-500 select-none">
+                  <p className="px-3 pt-1 text-[10px] font-bold uppercase tracking-wider text-stone-400 select-none">
                     {group.title}
                   </p>
                 )}
 
                 {/* Group Divider (collapsed only) */}
                 {isCollapsed && gi > 0 && (
-                  <div className="my-2 border-t border-white/[0.06] mx-1" />
+                  <div className="my-2 border-t border-stone-200/80 mx-1" />
                 )}
 
                 {/* Group Links */}
@@ -407,7 +407,7 @@ export function AdminSidebar({
         </div>
 
         {/* Bottom Section: Admin Profile & Actions */}
-        <div className="shrink-0 border-t border-white/[0.08] p-3 space-y-2 bg-stone-950/80">
+        <div className="shrink-0 border-t border-stone-200/80 p-3 space-y-2 bg-stone-50/60">
           {/* Quick External Storefront Link */}
           <Link
             href="/"
@@ -415,12 +415,12 @@ export function AdminSidebar({
             rel="noopener noreferrer"
             title={isCollapsed ? "View Live Storefront" : undefined}
             className={`
-              group flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-stone-400
-              hover:bg-white/[0.06] hover:text-white transition-all
+              group flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-stone-600
+              hover:bg-white hover:text-stone-950 hover:shadow-2xs hover:ring-1 hover:ring-stone-200/70 transition-all
               ${isCollapsed ? "justify-center px-2" : ""}
             `}
           >
-            <ExternalLink size={16} className="shrink-0 text-stone-400 group-hover:text-amber-400" />
+            <ExternalLink size={16} className="shrink-0 text-stone-400 group-hover:text-rose-700" />
             {!isCollapsed && (
               <span className="flex-1 truncate tracking-tight">View Storefront</span>
             )}
@@ -436,7 +436,7 @@ export function AdminSidebar({
           {/* Admin User Card */}
           <div
             className={`
-              flex items-center gap-3 rounded-xl p-2 bg-white/[0.03] ring-1 ring-white/[0.05]
+              flex items-center gap-3 rounded-xl p-2 bg-white border border-stone-200/80 shadow-2xs
               ${isCollapsed ? "justify-center" : ""}
             `}
           >
@@ -446,20 +446,20 @@ export function AdminSidebar({
                 <img
                   src={adminAvatar}
                   alt={adminName}
-                  className="h-8 w-8 rounded-xl object-cover ring-1 ring-amber-400/40"
+                  className="h-8 w-8 rounded-xl object-cover ring-1 ring-stone-200"
                 />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-rose-950 text-xs font-bold text-white shadow-inner ring-1 ring-amber-400/30">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-rose-900 text-xs font-bold text-white shadow-inner ring-1 ring-rose-200/60">
                   {initials}
                 </div>
               )}
               {/* Online indicator dot */}
-              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-stone-950" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
             </div>
 
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-white leading-tight">
+                <p className="truncate text-xs font-semibold text-stone-900 leading-tight">
                   {adminName}
                 </p>
                 <p className="truncate text-[10px] text-stone-500 leading-tight">
@@ -476,11 +476,11 @@ export function AdminSidebar({
             title={isCollapsed ? "Sign Out" : undefined}
             className={`
               group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium
-              text-stone-400 hover:bg-rose-950/40 hover:text-rose-300 transition-all duration-150
+              text-stone-600 hover:bg-rose-50 hover:text-rose-700 hover:ring-1 hover:ring-rose-200/60 transition-all duration-150
               ${isCollapsed ? "justify-center px-2" : ""}
             `}
           >
-            <LogOut size={16} className="shrink-0 text-stone-400 group-hover:text-rose-400" />
+            <LogOut size={16} className="shrink-0 text-stone-400 group-hover:text-rose-600" />
             {!isCollapsed && <span className="tracking-tight">Sign Out</span>}
 
             {isCollapsed && (
@@ -496,12 +496,12 @@ export function AdminSidebar({
           <button
             type="button"
             onClick={toggleCollapse}
-            className="hidden lg:flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] py-2 text-xs text-stone-400 hover:bg-white/[0.06] hover:text-white transition-all"
+            className="hidden lg:flex w-full items-center justify-center gap-2 rounded-xl border border-stone-200/80 bg-white hover:bg-stone-50 py-2 text-xs text-stone-600 hover:text-stone-900 shadow-2xs transition-all"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? (
-              <ChevronRight size={15} className="text-amber-400" />
+              <ChevronRight size={15} className="text-rose-700" />
             ) : (
               <>
                 <ChevronLeft size={15} />
@@ -518,12 +518,12 @@ export function AdminSidebar({
   return (
     <div className="relative min-h-screen bg-stone-50 flex flex-col font-sans selection:bg-rose-100 selection:text-rose-900">
       {/* ── Mobile Sticky Topbar (< lg) ─────────────────────────── */}
-      <header className="lg:hidden sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-stone-800/80 bg-stone-950/95 px-4 backdrop-blur-md text-white shadow-md">
+      <header className="lg:hidden sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-stone-200/80 bg-white/95 px-4 backdrop-blur-md text-stone-900 shadow-2xs">
         {/* Left: Hamburger Button */}
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.08] text-white hover:bg-white/[0.14] transition-colors ring-1 ring-white/10"
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors ring-1 ring-stone-200/80"
           aria-label="Open administration navigation"
         >
           <Menu size={20} />
@@ -531,14 +531,14 @@ export function AdminSidebar({
 
         {/* Center: Brand & Section */}
         <Link href="/admin" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-rose-950 text-sm shadow ring-1 ring-amber-400/40">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-rose-900 text-sm shadow-xs ring-1 ring-rose-200/60">
             💍
           </div>
           <div className="text-left">
-            <span className="font-display text-sm font-bold text-white leading-none block">
+            <span className="font-display text-sm font-bold text-stone-950 leading-none block">
               ShaadiRent
             </span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400 block mt-0.5">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-rose-800 block mt-0.5">
               Admin Console
             </span>
           </div>
@@ -549,14 +549,14 @@ export function AdminSidebar({
           {pendingApplications > 0 && (
             <Link
               href="/admin/applications"
-              className="flex items-center gap-1.5 rounded-full bg-amber-500/20 px-2.5 py-1 text-xs font-bold text-amber-300 ring-1 ring-amber-500/30"
+              className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-200"
             >
-              <ShieldAlert size={14} className="text-amber-400" />
+              <ShieldAlert size={14} className="text-amber-600" />
               <span>{pendingApplications}</span>
             </Link>
           )}
 
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-900 text-xs font-bold text-white ring-1 ring-amber-400/30">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-rose-600 to-rose-900 text-xs font-bold text-white ring-1 ring-rose-200/60 shadow-xs">
             {initials}
           </div>
         </div>
@@ -565,7 +565,7 @@ export function AdminSidebar({
       {/* ── Mobile Drawer (< lg) ────────────────────────────────── */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-stone-950/70 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
+          className="lg:hidden fixed inset-0 z-40 bg-stone-950/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
           onClick={() => setMobileOpen(false)}
           aria-hidden="true"
         />
@@ -573,7 +573,7 @@ export function AdminSidebar({
 
       <aside
         className={`
-          lg:hidden fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-stone-950 border-r border-stone-800
+          lg:hidden fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-white border-r border-stone-200
           shadow-2xl transform transition-transform duration-300 ease-out
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
         `}
@@ -585,7 +585,7 @@ export function AdminSidebar({
       <aside
         className={`
           hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col
-          bg-stone-950 border-r border-stone-800/80 shadow-2xl
+          bg-white border-r border-stone-200/80 shadow-xs
           transition-[width] duration-300 ease-in-out
           ${collapsed ? "w-20" : "w-64"}
         `}

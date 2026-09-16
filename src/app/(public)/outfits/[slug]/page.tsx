@@ -298,6 +298,7 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
             <OutfitActionCard
               outfit={{
                 id: outfit.id,
+                owner_id: outfit.owner_id,
                 title: outfit.title,
                 brand: outfit.brand,
                 rental_price: outfit.rental_price,
