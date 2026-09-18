@@ -18,7 +18,9 @@ export function MobileBottomNav({ user }: MobileBottomNavProps) {
   const isRentOutfitActive = pathname.startsWith("/rent-your-outfit") || pathname.startsWith("/list-your-outfit");
   const isBookingsActive = pathname.startsWith("/bookings");
   const isAccountActive =
-    pathname.startsWith("/account") || pathname.startsWith("/auth");
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/profile") ||
+    pathname.startsWith("/auth");
 
   const initials = user?.name
     ? user.name
@@ -178,7 +180,7 @@ export function MobileBottomNav({ user }: MobileBottomNavProps) {
               isAccountActive ? "font-bold text-rose-900" : "font-medium"
             }`}
           >
-            {user ? "Account" : "Login"}
+            {user ? "Profile" : "Login"}
           </span>
         </Link>
       </div>

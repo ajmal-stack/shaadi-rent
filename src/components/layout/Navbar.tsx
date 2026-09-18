@@ -12,8 +12,9 @@ import {
   LogOut,
   LayoutDashboard,
   ShieldAlert,
+  Menu,
 } from "lucide-react";
-import { AuthUser } from "./MobileMenu";
+import { MobileMenu, AuthUser } from "./MobileMenu";
 import { SearchModal } from "./SearchModal";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { signOut } from "@/app/(public)/auth/actions";
@@ -26,6 +27,7 @@ export function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   // Close account dropdown on outside click
@@ -287,27 +289,37 @@ export function Navbar({ user }: NavbarProps) {
 
           {/* =========================================================================
               MOBILE TOP HEADER (Visible on mobile screens < md)
-              Clean, elegant top header without sidebar toggle:
-              Left: ShaadiRent Logo | Right: Search & Account/Login
+              Left: Menu Button + ShaadiRent Logo | Right: Search + Profile / Login
              ========================================================================= */}
           <div className="flex md:hidden h-14 items-center justify-between">
-            {/* ShaadiRent Logo */}
-            <Link
-              href="/"
-              className="flex items-center gap-2 focus:outline-none"
-            >
-              <span
-                aria-hidden="true"
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-rose-700 to-rose-900 text-sm shadow-xs"
+            {/* Left: Hamburger Menu Button + Logo */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(true)}
+                aria-label="Open mobile navigation menu"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-900 transition-colors focus:outline-none active:scale-95"
               >
-                💍
-              </span>
-              <span className="font-display text-xl font-bold tracking-tight text-rose-950">
-                ShaadiRent
-              </span>
-            </Link>
+                <Menu size={22} strokeWidth={2.2} />
+              </button>
 
-            {/* Right Action Icons: 🔍 Search + 👤 Account */}
+              <Link
+                href="/"
+                className="flex items-center gap-2 focus:outline-none"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-rose-700 to-rose-900 text-sm shadow-xs"
+                >
+                  💍
+                </span>
+                <span className="font-display text-xl font-bold tracking-tight text-rose-950">
+                  ShaadiRent
+                </span>
+              </Link>
+            </div>
+
+            {/* Right Action Icons: 🔍 Search + 👤 Profile / Account Badge */}
             <div className="flex items-center gap-1.5">
               {/* Search Trigger */}
               <button
@@ -319,34 +331,44 @@ export function Navbar({ user }: NavbarProps) {
                 <Search size={20} strokeWidth={2.2} />
               </button>
 
-              {/* User Account / Login Badge */}
+              {/* User Profile Pill / Login Link */}
               <Link
                 href={user ? "/account" : "/auth/login"}
-                aria-label={user ? "My Account" : "Login"}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-800 transition-colors focus:outline-none active:scale-95"
+                aria-label={user ? `My Profile (${user.name})` : "Login / Account"}
+                className="flex h-9 items-center gap-1.5 rounded-full border border-rose-200/80 bg-rose-50/70 px-2 py-1 text-xs font-semibold text-rose-950 transition-all hover:border-rose-300 hover:bg-rose-100/70 active:scale-95 shadow-2xs"
               >
                 {user?.avatarUrl ? (
                   <Image
                     src={user.avatarUrl}
                     alt={user.name}
-                    width={26}
-                    height={26}
+                    width={22}
+                    height={22}
                     className="rounded-full ring-1 ring-rose-400 object-cover"
                   />
                 ) : user ? (
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-700 text-[11px] font-bold text-white shadow-xs">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-rose-700 to-rose-900 text-[10px] font-bold text-white shadow-xs">
                     {initials}
                   </div>
                 ) : (
-                  <User size={20} strokeWidth={2.2} />
+                  <User size={16} strokeWidth={2.2} className="text-rose-800" />
                 )}
+                <span className="max-w-[75px] truncate text-[11px] font-semibold text-rose-950">
+                  {user ? user.name.split(" ")[0] : "Login"}
+                </span>
               </Link>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile-friendly Bottom Navigation Bar (No sidebar needed) */}
+      {/* Mobile Drawer (Menu + Full Profile Card & Navigation) */}
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        user={user}
+      />
+
+      {/* Mobile-friendly Bottom Navigation Bar */}
       <MobileBottomNav user={user} />
 
       {/* Global Search Modal */}
