@@ -2,6 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import type { Database } from "@/types/database";
+
+type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 export interface UpdateProfileResult {
   success: boolean;
@@ -55,18 +58,15 @@ export async function updateProfileAction(
     }
   }
 
-  const updates: Record<string, string | null> = {
+  const updates: ProfileUpdate = {
     full_name: fullName,
     phone: phone || null,
     city: city || null,
     district: district || null,
     state: state || null,
     updated_at: new Date().toISOString(),
+    ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
   };
-
-  if (avatarUrl) {
-    updates.avatar_url = avatarUrl;
-  }
 
   const { error: updateError } = await supabase
     .from("profiles")

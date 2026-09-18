@@ -54,7 +54,12 @@ export default async function AccountPage() {
     city: profile?.city ?? null,
     district: profile?.district ?? null,
     state: profile?.state ?? null,
-    verification_status: profile?.verification_status ?? "pending",
+    verification_status:
+      (profile?.verification_status as
+        | "pending"
+        | "verified"
+        | "rejected"
+        | undefined) ?? "pending",
     created_at:
       profile?.created_at ?? user.created_at ?? new Date().toISOString(),
   };
