@@ -52,13 +52,13 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon, colorClass }: StatCardProps) {
   return (
-    <div className={`rounded-2xl border p-5 bg-white ${colorClass}`}>
+    <div className={`rounded-2xl border p-5 bg-white dark:bg-stone-900 ${colorClass}`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-semibold text-stone-500 mb-1">{label}</p>
-          <p className="text-2xl font-bold text-stone-900">{value}</p>
+          <p className="text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1">{label}</p>
+          <p className="text-2xl font-bold text-stone-900 dark:text-stone-100">{value}</p>
         </div>
-        <div className="p-2.5 rounded-xl bg-stone-50">{icon}</div>
+        <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800">{icon}</div>
       </div>
     </div>
   );
@@ -133,26 +133,26 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
         <StatCard
           label="Total Collected"
           value={formatCurrency(stats.totalRevenue)}
-          icon={<TrendingUp size={18} className="text-emerald-600" />}
-          colorClass="border-emerald-100"
+          icon={<TrendingUp size={18} className="text-emerald-600 dark:text-emerald-400" />}
+          colorClass="border-emerald-100 dark:border-emerald-900/50"
         />
         <StatCard
           label="Pending"
           value={formatCurrency(stats.pending)}
-          icon={<Clock size={18} className="text-amber-500" />}
-          colorClass="border-amber-100"
+          icon={<Clock size={18} className="text-amber-500 dark:text-amber-400" />}
+          colorClass="border-amber-100 dark:border-amber-900/50"
         />
         <StatCard
           label="Failed"
           value={formatCurrency(stats.failed)}
-          icon={<AlertTriangle size={18} className="text-rose-500" />}
-          colorClass="border-rose-100"
+          icon={<AlertTriangle size={18} className="text-rose-500 dark:text-rose-400" />}
+          colorClass="border-rose-100 dark:border-rose-900/50"
         />
         <StatCard
           label="Refunded"
           value={formatCurrency(stats.refunded)}
-          icon={<ArrowDownLeft size={18} className="text-sky-500" />}
-          colorClass="border-sky-100"
+          icon={<ArrowDownLeft size={18} className="text-sky-500 dark:text-sky-400" />}
+          colorClass="border-sky-100 dark:border-sky-900/50"
         />
       </div>
 
@@ -172,7 +172,7 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden shadow-xs">
         {filtered.length === 0 ? (
           <AdminEmptyState
             icon={CreditCard}
@@ -181,31 +181,31 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-stone-100">
+            <table className="min-w-full divide-y divide-stone-100 dark:divide-stone-800">
               <thead>
-                <tr className="bg-stone-50">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Payment</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden md:table-cell">Booking</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden sm:table-cell">Renter</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Amount</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Status</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden lg:table-cell">Date</th>
+                <tr className="bg-stone-50 dark:bg-stone-900/90 border-b border-stone-100 dark:border-stone-800">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Payment</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden md:table-cell">Booking</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden sm:table-cell">Renter</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Amount</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden lg:table-cell">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {filtered.map((payment) => (
-                  <tr key={payment.id} className="hover:bg-stone-50/60 transition-colors">
+                  <tr key={payment.id} className="hover:bg-stone-50/60 dark:hover:bg-stone-800/50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-xl bg-stone-100 flex items-center justify-center shrink-0">
-                          <CreditCard size={14} className="text-stone-500" />
+                        <div className="h-8 w-8 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center shrink-0">
+                          <CreditCard size={14} className="text-stone-500 dark:text-stone-400" />
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-stone-800 uppercase">
+                          <p className="text-xs font-semibold text-stone-800 dark:text-stone-200 uppercase">
                             {payment.provider}
                           </p>
                           {payment.provider_payment_id && (
-                            <p className="font-mono text-[10px] text-stone-400 truncate max-w-[120px]">
+                            <p className="font-mono text-[10px] text-stone-400 dark:text-stone-500 truncate max-w-[120px]">
                               {payment.provider_payment_id}
                             </p>
                           )}
@@ -213,17 +213,17 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="font-mono text-xs font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-lg">
+                      <span className="font-mono text-xs font-bold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded-lg">
                         {payment.bookings?.booking_number ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className="text-sm text-stone-700">
+                      <span className="text-sm text-stone-700 dark:text-stone-300">
                         {payment.bookings?.renter?.full_name ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm font-bold text-stone-900">
+                      <span className="text-sm font-bold text-stone-900 dark:text-stone-100">
                         {formatCurrency(payment.amount, payment.currency)}
                       </span>
                     </td>
@@ -231,7 +231,7 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
                       <AdminBadge status={payment.status} />
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className="text-xs text-stone-500">
+                      <span className="text-xs text-stone-500 dark:text-stone-400">
                         {formatDate(payment.created_at)}
                       </span>
                     </td>
@@ -244,7 +244,7 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-xs text-stone-400 text-right">
+        <p className="text-xs text-stone-400 dark:text-stone-500 text-right">
           Showing {filtered.length} of {initialPayments.length} payments
         </p>
       )}

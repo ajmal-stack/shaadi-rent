@@ -109,7 +109,7 @@ export function LottieLoader({
           </svg>
 
           {/* Center Wedding Ring Icon & Shimmer Disc */}
-          <div className="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-b from-amber-50/90 via-white to-rose-50/80 shadow-xs border border-amber-200/60 ring-2 ring-white">
+          <div className="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-b from-amber-50/90 via-white to-rose-50/80 dark:from-stone-800 dark:via-stone-900 dark:to-stone-800 shadow-xs border border-amber-200/60 dark:border-amber-700/40 ring-2 ring-white dark:ring-stone-950">
             {/* Wedding Ring Emoji */}
             <span
               className="text-2xl select-none transform transition-transform duration-700 hover:scale-110 animate-bounce"
@@ -130,19 +130,19 @@ export function LottieLoader({
       {/* Brand Title & Subtitle */}
       <div className="mt-5 space-y-1.5 max-w-xs">
         {title && (
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200/70 text-[11px] font-bold uppercase tracking-widest text-rose-900 shadow-xs">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/70 dark:border-rose-900/60 text-[11px] font-bold uppercase tracking-widest text-rose-900 dark:text-rose-300 shadow-xs">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
             <span>{title}</span>
           </div>
         )}
 
         {subtitle && (
-          <p className="font-display text-base sm:text-lg font-semibold text-stone-800 tracking-tight">
+          <p className="font-display text-base sm:text-lg font-semibold text-stone-800 dark:text-stone-100 tracking-tight">
             {subtitle}
           </p>
         )}
 
-        <p className="text-xs text-stone-400 font-sans tracking-wide">
+        <p className="text-xs text-stone-400 dark:text-stone-500 font-sans tracking-wide">
           Rent · Wear · Return
         </p>
       </div>
@@ -151,7 +151,7 @@ export function LottieLoader({
 
   if (fullscreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-xs">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 dark:bg-stone-950/95 backdrop-blur-xs">
         {content}
       </div>
     );

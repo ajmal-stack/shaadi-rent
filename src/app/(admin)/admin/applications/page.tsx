@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ApplicationReviewClient } from "@/components/admin/ApplicationReviewClient";
 import type { OwnerApplication } from "@/types/database";
 
@@ -27,29 +28,20 @@ export default async function AdminApplicationsPage() {
   return (
     <div className="py-8 sm:py-10">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 space-y-6">
-        {/* Top Breadcrumb & Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-1.5 text-xs text-stone-500 mb-1">
-              <Link href="/admin" className="hover:text-stone-900 transition-colors">
-                Admin Console
-              </Link>
-              <ChevronRight size={13} />
-              <span className="text-stone-900 font-medium">Owner Applications</span>
-            </div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-stone-900 flex items-center gap-2">
-              <ShieldCheck className="text-rose-800" size={28} />
-              <span>Owner Onboarding Applications</span>
-            </h1>
-          </div>
-
-          <Link
-            href="/admin"
-            className="inline-flex items-center text-xs font-semibold text-stone-600 hover:text-stone-900 bg-white border border-stone-200 px-3.5 py-2 rounded-xl shadow-2xs"
-          >
-            ← Back to Overview
-          </Link>
-        </div>
+        <AdminPageHeader
+          title="Owner Onboarding Applications"
+          subtitle="Review, verify identity documents, and onboard boutique owners."
+          icon={ShieldCheck}
+          breadcrumb={[{ label: "Owner Applications" }]}
+          actions={
+            <Link
+              href="/admin"
+              className="inline-flex items-center text-xs font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 px-3.5 py-2 rounded-xl shadow-2xs transition-colors"
+            >
+              ← Back to Overview
+            </Link>
+          }
+        />
 
         {/* Client Application Review Table & Actions */}
         <ApplicationReviewClient

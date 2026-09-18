@@ -61,18 +61,17 @@ export function StatCard({
 
   return (
     <div
-      className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between gap-3"
-      style={{ borderColor }}
+      className="rounded-2xl border bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800/90 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-3"
     >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">{title}</p>
-          <p className="font-display text-3xl font-bold text-stone-900 mt-1 tabular-nums">
+          <p className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">{title}</p>
+          <p className="font-display text-3xl font-bold text-stone-900 dark:text-stone-100 mt-1 tabular-nums">
             {formattedDisplay}
           </p>
         </div>
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 dark:bg-stone-800"
           style={{ background: iconBg }}
         >
           <Icon size={18} style={{ color: iconColor }} />
@@ -96,17 +95,18 @@ export function StatCard({
         {trend !== null && trend !== undefined ? (
           <span
             className={`text-[11px] font-semibold flex items-center gap-0.5 ${
-              trendPositive ? "text-emerald-700" : "text-rose-700"
+              trendPositive ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"
             }`}
           >
             {trendPositive ? "↑" : "↓"} {Math.abs(trend)}%{" "}
-            <span className="text-stone-400 font-normal ml-1">{trendLabel ?? "vs last month"}</span>
+            <span className="text-stone-400 dark:text-stone-500 font-normal ml-1">{trendLabel ?? "vs last month"}</span>
           </span>
         ) : (
-          <span className="text-[11px] text-stone-400">{trendLabel}</span>
+          <span className="text-[11px] text-stone-400 dark:text-stone-500">{trendLabel}</span>
         )}
         {footer}
       </div>
     </div>
   );
+
 }

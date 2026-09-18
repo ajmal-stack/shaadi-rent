@@ -261,14 +261,14 @@ export default async function AdminDashboardPage() {
         {/* ── Header ────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-800 bg-rose-50 px-3 py-1 rounded-full border border-rose-200 mb-2">
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 px-3 py-1 rounded-full border border-rose-200 dark:border-rose-800/60 mb-2">
               <Sparkles size={12} />
               Platform Administration
             </div>
-            <h1 className="font-display text-3xl font-bold text-stone-900">
+            <h1 className="font-display text-3xl font-bold text-stone-900 dark:text-stone-100">
               Admin Console
             </h1>
-            <p className="mt-1 text-sm text-stone-400">{todayLabel}</p>
+            <p className="mt-1 text-sm text-stone-400 dark:text-stone-500">{todayLabel}</p>
           </div>
 
           <Link
@@ -299,61 +299,61 @@ export default async function AdminDashboardPage() {
         />
 
         {/* ── Recent Applications Feed ───────────────────────── */}
-        <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+        <div className="rounded-3xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800">
             <div>
-              <h2 className="font-display text-base font-bold text-stone-900">
+              <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                 Recent Onboarding Applications
               </h2>
-              <p className="text-xs text-stone-400">
+              <p className="text-xs text-stone-400 dark:text-stone-500">
                 Latest submissions from prospective owners
               </p>
             </div>
             <Link
               href="/admin/applications"
-              className="text-xs font-semibold text-rose-800 hover:text-rose-950"
+              className="text-xs font-semibold text-rose-800 dark:text-rose-400 hover:text-rose-950 dark:hover:text-rose-300"
             >
               View all →
             </Link>
           </div>
 
           {!recentApplications || recentApplications.length === 0 ? (
-            <p className="text-xs text-stone-400 py-6 text-center">
+            <p className="text-xs text-stone-400 dark:text-stone-500 py-6 text-center">
               No applications submitted yet.
             </p>
           ) : (
-            <div className="divide-y divide-stone-100">
+            <div className="divide-y divide-stone-100 dark:divide-stone-800/80">
               {recentApplications.map((app) => (
                 <div
                   key={app.id}
                   className="py-3 flex items-center justify-between flex-wrap gap-2 text-xs"
                 >
                   <div className="space-y-0.5">
-                    <span className="font-bold text-stone-900">{app.full_name}</span>
-                    <p className="text-[11px] text-stone-400">
+                    <span className="font-bold text-stone-900 dark:text-stone-100">{app.full_name}</span>
+                    <p className="text-[11px] text-stone-400 dark:text-stone-500">
                       {app.city}, {app.state} · ID: {app.id_type?.toUpperCase()}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-3">
                     {app.status === "pending" && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-300">
                         Pending
                       </span>
                     )}
                     {app.status === "approved" && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
                         Approved
                       </span>
                     )}
                     {app.status === "rejected" && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-rose-300 bg-rose-50 px-2.5 py-0.5 text-[10px] font-bold text-rose-800">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-rose-300 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-0.5 text-[10px] font-bold text-rose-800 dark:text-rose-300">
                         Rejected
                       </span>
                     )}
                     <Link
                       href="/admin/applications"
-                      className="text-stone-700 hover:text-stone-950 font-semibold"
+                      className="text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-stone-100 font-semibold"
                     >
                       Review →
                     </Link>
@@ -368,20 +368,20 @@ export default async function AdminDashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <Link
             href="/admin/applications"
-            className="group rounded-3xl border border-stone-200 bg-white p-6 shadow-sm hover:border-rose-200 hover:shadow-md transition-all flex flex-col justify-between"
+            className="group rounded-3xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 shadow-sm hover:border-rose-200 dark:hover:border-rose-800/60 hover:shadow-md transition-all flex flex-col justify-between"
           >
             <div className="space-y-2">
-              <div className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-800">
+              <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-100 dark:border-rose-800/50 flex items-center justify-center text-rose-800 dark:text-rose-400">
                 <ShieldCheck size={22} />
               </div>
-              <h3 className="font-display text-lg font-bold text-stone-900 group-hover:text-rose-900 transition-colors">
+              <h3 className="font-display text-lg font-bold text-stone-900 dark:text-stone-100 group-hover:text-rose-900 dark:group-hover:text-rose-300 transition-colors">
                 Owner Applications Review
               </h3>
-              <p className="text-xs text-stone-500 leading-relaxed">
+              <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
                 Inspect applicant KYC government ID cards, verify contact numbers, and grant verified owner access.
               </p>
             </div>
-            <div className="pt-5 flex items-center justify-between text-xs font-semibold text-rose-800">
+            <div className="pt-5 flex items-center justify-between text-xs font-semibold text-rose-800 dark:text-rose-400">
               <span>View Queue ({pendingApplicationsCount ?? 0} pending)</span>
               <ArrowRight
                 size={16}
@@ -392,10 +392,10 @@ export default async function AdminDashboardPage() {
 
           <Link
             href="/admin/bookings"
-            className="group rounded-3xl border border-stone-200 bg-white p-6 shadow-sm hover:border-violet-200 hover:shadow-md transition-all flex flex-col justify-between"
+            className="group rounded-3xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 shadow-sm hover:border-violet-200 dark:hover:border-violet-800/60 hover:shadow-md transition-all flex flex-col justify-between"
           >
             <div className="space-y-2">
-              <div className="w-11 h-11 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-700">
+              <div className="w-11 h-11 rounded-2xl bg-violet-50 dark:bg-violet-950/50 border border-violet-100 dark:border-violet-800/50 flex items-center justify-center text-violet-700 dark:text-violet-400">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                   <line x1="16" y1="2" x2="16" y2="6" />
@@ -403,14 +403,14 @@ export default async function AdminDashboardPage() {
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
               </div>
-              <h3 className="font-display text-lg font-bold text-stone-900 group-hover:text-violet-900 transition-colors">
+              <h3 className="font-display text-lg font-bold text-stone-900 dark:text-stone-100 group-hover:text-violet-900 dark:group-hover:text-violet-300 transition-colors">
                 Manage All Bookings
               </h3>
-              <p className="text-xs text-stone-500 leading-relaxed">
+              <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
                 Track, filter, and manage all rental bookings across the platform — from pending to completed.
               </p>
             </div>
-            <div className="pt-5 flex items-center justify-between text-xs font-semibold text-violet-700">
+            <div className="pt-5 flex items-center justify-between text-xs font-semibold text-violet-700 dark:text-violet-400">
               <span>View all {totalBookingsCount ?? 0} bookings</span>
               <ChevronRight
                 size={16}
@@ -421,5 +421,6 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
     </div>
+
   );
 }

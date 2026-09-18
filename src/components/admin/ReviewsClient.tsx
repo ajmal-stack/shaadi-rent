@@ -24,10 +24,10 @@ function StarRating({ rating }: { rating: number }) {
         <Star
           key={s}
           size={13}
-          className={s <= rating ? "text-amber-400 fill-amber-400" : "text-stone-200 fill-stone-200"}
+          className={s <= rating ? "text-amber-400 fill-amber-400" : "text-stone-200 dark:text-stone-700 fill-stone-200 dark:fill-stone-700"}
         />
       ))}
-      <span className="ml-1 text-xs font-semibold text-stone-600">{rating}.0</span>
+      <span className="ml-1 text-xs font-semibold text-stone-600 dark:text-stone-300">{rating}.0</span>
     </div>
   );
 }
@@ -110,11 +110,11 @@ export function ReviewsClient({ initialReviews }: ReviewsClientProps) {
   return (
     <div className="space-y-5">
       {/* Stats bar */}
-      <div className="flex items-center gap-6 p-4 bg-white border border-stone-200 rounded-2xl">
+      <div className="flex items-center gap-6 p-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl">
         <div className="flex flex-col items-center">
-          <span className="text-3xl font-bold text-stone-900">{avgRating.toFixed(1)}</span>
+          <span className="text-3xl font-bold text-stone-900 dark:text-stone-100">{avgRating.toFixed(1)}</span>
           <StarRating rating={Math.round(avgRating)} />
-          <span className="text-xs text-stone-400 mt-1">{reviews.length} reviews</span>
+          <span className="text-xs text-stone-400 dark:text-stone-500 mt-1">{reviews.length} reviews</span>
         </div>
         <div className="flex-1 space-y-1">
           {([5, 4, 3, 2, 1] as const).map((r) => {
@@ -122,15 +122,15 @@ export function ReviewsClient({ initialReviews }: ReviewsClientProps) {
             const pct = reviews.length ? (count / reviews.length) * 100 : 0;
             return (
               <div key={r} className="flex items-center gap-2">
-                <span className="text-xs text-stone-500 w-4 text-right">{r}</span>
+                <span className="text-xs text-stone-500 dark:text-stone-400 w-4 text-right">{r}</span>
                 <Star size={10} className="text-amber-400 fill-amber-400 shrink-0" />
-                <div className="flex-1 h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-amber-400 rounded-full transition-all duration-500"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <span className="text-xs text-stone-400 w-6">{count}</span>
+                <span className="text-xs text-stone-400 dark:text-stone-500 w-6">{count}</span>
               </div>
             );
           })}
@@ -143,7 +143,7 @@ export function ReviewsClient({ initialReviews }: ReviewsClientProps) {
         <AdminSearch value={search} onChange={setSearch} placeholder="Search outfit, reviewer, comment…" className="sm:w-64" />
       </div>
 
-      <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden shadow-xs">
         {filtered.length === 0 ? (
           <AdminEmptyState
             icon={Star}
@@ -152,61 +152,61 @@ export function ReviewsClient({ initialReviews }: ReviewsClientProps) {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-stone-100">
+            <table className="min-w-full divide-y divide-stone-100 dark:divide-stone-800">
               <thead>
-                <tr className="bg-stone-50">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Rating</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden md:table-cell">Outfit</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden sm:table-cell">Reviewer</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Comment</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden lg:table-cell">Date</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Actions</th>
+                <tr className="bg-stone-50 dark:bg-stone-900/90 border-b border-stone-100 dark:border-stone-800">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Rating</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden md:table-cell">Outfit</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden sm:table-cell">Reviewer</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Comment</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden lg:table-cell">Date</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {filtered.map((review) => {
                   const isConfirming = confirmDelete === review.id;
                   return (
-                    <tr key={review.id} className="hover:bg-stone-50/60 transition-colors">
+                    <tr key={review.id} className="hover:bg-stone-50/60 dark:hover:bg-stone-800/50 transition-colors">
                       <td className="px-4 py-3">
                         <StarRating rating={review.rating} />
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <span className="text-sm font-medium text-stone-800 max-w-[140px] truncate block">
+                        <span className="text-sm font-medium text-stone-800 dark:text-stone-200 max-w-[140px] truncate block">
                           {review.outfit?.title ?? "—"}
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
-                        <span className="text-sm text-stone-700">
+                        <span className="text-sm text-stone-700 dark:text-stone-300">
                           {review.reviewer?.full_name ?? "—"}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-stone-600 max-w-[200px] truncate block">
-                          {review.comment ?? <span className="text-stone-300 italic">No comment</span>}
+                        <span className="text-xs text-stone-600 dark:text-stone-300 max-w-[200px] truncate block">
+                          {review.comment ?? <span className="text-stone-300 dark:text-stone-600 italic">No comment</span>}
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
-                        <span className="text-xs text-stone-500">
+                        <span className="text-xs text-stone-500 dark:text-stone-400">
                           {formatDate(review.created_at)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         {isConfirming ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] text-rose-600">Delete?</span>
+                            <span className="text-[11px] text-rose-600 dark:text-rose-400">Delete?</span>
                             <button
                               type="button"
                               disabled={isPending}
                               onClick={() => handleDelete(review.id)}
-                              className="text-[11px] font-bold text-rose-700 disabled:opacity-50"
+                              className="text-[11px] font-bold text-rose-700 dark:text-rose-400 disabled:opacity-50"
                             >
                               Yes
                             </button>
                             <button
                               type="button"
                               onClick={() => setConfirmDelete(null)}
-                              className="text-[11px] text-stone-400"
+                              className="text-[11px] text-stone-400 dark:text-stone-500"
                             >
                               No
                             </button>
@@ -215,7 +215,7 @@ export function ReviewsClient({ initialReviews }: ReviewsClientProps) {
                           <button
                             type="button"
                             onClick={() => setConfirmDelete(review.id)}
-                            className="flex items-center gap-1 text-[11px] font-medium text-stone-400 hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded-lg transition-colors"
+                            className="flex items-center gap-1 text-[11px] font-medium text-stone-400 dark:text-stone-500 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-2 py-1 rounded-lg transition-colors"
                           >
                             <Trash2 size={12} />
                             Delete
@@ -232,7 +232,7 @@ export function ReviewsClient({ initialReviews }: ReviewsClientProps) {
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-xs text-stone-400 text-right">
+        <p className="text-xs text-stone-400 dark:text-stone-500 text-right">
           Showing {filtered.length} of {reviews.length} reviews
         </p>
       )}

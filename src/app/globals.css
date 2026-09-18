@@ -2,6 +2,9 @@
 
 @import "tailwindcss";
 
+/* ── Custom Dark Variant for Class-Based Theming ────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ── CSS custom properties (consumed by Tailwind v4 @theme) ──────────────── */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -21,10 +24,15 @@ html {
   scroll-behavior: smooth;
 }
 
+html.dark {
+  color-scheme: dark;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: #ffffff;
   color: #111827;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* ── Sleek Custom Scrollbars ─────────────────────────────────────────────── */
@@ -58,5 +66,16 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(168, 162, 158, 0.35) transparent;
   overscroll-behavior: contain;
+}
+
+/* Dark mode scrollbars */
+.dark .sleek-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.4);
+}
+.dark .sleek-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.7);
+}
+.dark .sleek-scrollbar {
+  scrollbar-color: rgba(120, 113, 108, 0.4) transparent;
 }
 

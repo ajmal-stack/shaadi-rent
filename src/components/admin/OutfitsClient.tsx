@@ -138,7 +138,7 @@ export function OutfitsClient({ initialOutfits }: OutfitsClientProps) {
           <AdminSearch value={search} onChange={setSearch} placeholder="Search outfits, owner…" className="sm:w-64" />
         </div>
         {/* Verification sub-filter */}
-        <div className="flex items-center gap-2 text-xs text-stone-500">
+        <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 flex-wrap">
           <span className="font-medium">Verification:</span>
           {(["all", "pending", "approved", "rejected", "changes_requested"] as const).map((v) => (
             <button
@@ -146,7 +146,9 @@ export function OutfitsClient({ initialOutfits }: OutfitsClientProps) {
               type="button"
               onClick={() => setVerFilter(v)}
               className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-colors ${
-                verFilter === v ? "bg-rose-800 text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                verFilter === v
+                  ? "bg-rose-800 dark:bg-rose-700 text-white"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700"
               }`}
             >
               {v === "all" ? "All" : v === "pending" ? `Pending (${verCounts.pending})` : v === "approved" ? `Approved (${verCounts.approved})` : v === "rejected" ? `Rejected (${verCounts.rejected})` : `Changes (${verCounts.changes_requested})`}
@@ -156,37 +158,37 @@ export function OutfitsClient({ initialOutfits }: OutfitsClientProps) {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden shadow-xs">
         {filtered.length === 0 ? (
           <AdminEmptyState icon={Shirt} title="No outfits found" description="Adjust your filters or search." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-stone-100">
+            <table className="min-w-full divide-y divide-stone-100 dark:divide-stone-800">
               <thead>
-                <tr className="bg-stone-50">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Outfit</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden md:table-cell">Owner</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Status</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Verification</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden sm:table-cell">Price</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden lg:table-cell">Listed</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Actions</th>
+                <tr className="bg-stone-50 dark:bg-stone-900/90 border-b border-stone-100 dark:border-stone-800">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Outfit</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden md:table-cell">Owner</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Verification</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden sm:table-cell">Price</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden lg:table-cell">Listed</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {filtered.map((outfit) => {
                   const isArchiving = confirmArchive === outfit.id;
                   return (
-                    <tr key={outfit.id} className="hover:bg-stone-50/60 transition-colors">
+                    <tr key={outfit.id} className="hover:bg-stone-50/60 dark:hover:bg-stone-800/50 transition-colors">
                       {/* Outfit info */}
                       <td className="px-4 py-3">
-                        <p className="text-sm font-semibold text-stone-900 max-w-[180px] truncate">{outfit.title}</p>
+                        <p className="text-sm font-semibold text-stone-900 dark:text-stone-100 max-w-[180px] truncate">{outfit.title}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {outfit.categories && (
-                            <span className="text-[11px] text-stone-400">{outfit.categories.name}</span>
+                            <span className="text-[11px] text-stone-400 dark:text-stone-500">{outfit.categories.name}</span>
                           )}
                           {(outfit.city || outfit.state) && (
-                            <span className="text-[11px] text-stone-400 flex items-center gap-0.5">
+                            <span className="text-[11px] text-stone-400 dark:text-stone-500 flex items-center gap-0.5">
                               <MapPin size={9} />
                               {[outfit.city, outfit.state].filter(Boolean).join(", ")}
                             </span>
@@ -195,8 +197,8 @@ export function OutfitsClient({ initialOutfits }: OutfitsClientProps) {
                       </td>
                       {/* Owner */}
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <p className="text-xs text-stone-700 font-medium">{outfit.profiles?.full_name ?? "—"}</p>
-                        <p className="text-[11px] text-stone-400 truncate max-w-[140px]">{outfit.profiles?.email ?? ""}</p>
+                        <p className="text-xs text-stone-700 dark:text-stone-300 font-medium">{outfit.profiles?.full_name ?? "—"}</p>
+                        <p className="text-[11px] text-stone-400 dark:text-stone-500 truncate max-w-[140px]">{outfit.profiles?.email ?? ""}</p>
                       </td>
                       {/* Status */}
                       <td className="px-4 py-3"><AdminBadge status={outfit.status} /></td>
@@ -204,12 +206,12 @@ export function OutfitsClient({ initialOutfits }: OutfitsClientProps) {
                       <td className="px-4 py-3"><AdminBadge status={outfit.verification_status} /></td>
                       {/* Price */}
                       <td className="px-4 py-3 hidden sm:table-cell">
-                        <span className="text-sm font-semibold text-stone-800">{formatCurrency(outfit.rental_price)}</span>
-                        <span className="text-xs text-stone-400">/day</span>
+                        <span className="text-sm font-semibold text-stone-800 dark:text-stone-100">{formatCurrency(outfit.rental_price)}</span>
+                        <span className="text-xs text-stone-400 dark:text-stone-500">/day</span>
                       </td>
                       {/* Date */}
                       <td className="px-4 py-3 hidden lg:table-cell">
-                        <span className="text-xs text-stone-500">{formatDate(outfit.created_at)}</span>
+                        <span className="text-xs text-stone-500 dark:text-stone-400">{formatDate(outfit.created_at)}</span>
                       </td>
                       {/* Actions */}
                       <td className="px-4 py-3">
@@ -219,7 +221,7 @@ export function OutfitsClient({ initialOutfits }: OutfitsClientProps) {
                               type="button"
                               disabled={isPending}
                               onClick={() => handleVerification(outfit.id, "approved")}
-                              className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+                              className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
                             >
                               <CheckCircle2 size={12} /> Approve
                             </button>
@@ -229,7 +231,7 @@ export function OutfitsClient({ initialOutfits }: OutfitsClientProps) {
                               type="button"
                               disabled={isPending}
                               onClick={() => handleVerification(outfit.id, "rejected")}
-                              className="flex items-center gap-1 text-[11px] font-semibold text-rose-700 hover:text-rose-900 hover:bg-rose-50 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+                              className="flex items-center gap-1 text-[11px] font-semibold text-rose-700 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
                             >
                               <XCircle size={12} /> Reject
                             </button>
@@ -238,16 +240,16 @@ export function OutfitsClient({ initialOutfits }: OutfitsClientProps) {
                             <button
                               type="button"
                               onClick={() => setConfirmArchive(outfit.id)}
-                              className="text-[11px] text-stone-400 hover:text-stone-600 hover:bg-stone-100 px-2 py-1 rounded-lg transition-colors"
+                              className="text-[11px] text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 px-2 py-1 rounded-lg transition-colors"
                             >
                               <Archive size={12} />
                             </button>
                           )}
                           {isArchiving && (
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-stone-500">Archive?</span>
-                              <button type="button" disabled={isPending} onClick={() => handleArchive(outfit.id)} className="text-[11px] font-bold text-rose-700 disabled:opacity-50">Yes</button>
-                              <button type="button" onClick={() => setConfirmArchive(null)} className="text-[11px] text-stone-400">No</button>
+                              <span className="text-[11px] text-stone-500 dark:text-stone-400">Archive?</span>
+                              <button type="button" disabled={isPending} onClick={() => handleArchive(outfit.id)} className="text-[11px] font-bold text-rose-700 dark:text-rose-400 disabled:opacity-50">Yes</button>
+                              <button type="button" onClick={() => setConfirmArchive(null)} className="text-[11px] text-stone-400 dark:text-stone-500">No</button>
                             </div>
                           )}
                         </div>
@@ -262,7 +264,7 @@ export function OutfitsClient({ initialOutfits }: OutfitsClientProps) {
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-xs text-stone-400 text-right">
+        <p className="text-xs text-stone-400 dark:text-stone-500 text-right">
           Showing {filtered.length} of {outfits.length} outfits
         </p>
       )}

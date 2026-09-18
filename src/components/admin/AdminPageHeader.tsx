@@ -28,25 +28,25 @@ export function AdminPageHeader({
       <div className="space-y-1 min-w-0">
         {/* Breadcrumb */}
         {breadcrumb.length > 0 && (
-          <nav className="flex items-center gap-1.5 text-xs text-stone-500 flex-wrap mb-0.5">
+          <nav className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400 flex-wrap mb-0.5">
             <Link
               href="/admin"
-              className="hover:text-stone-900 transition-colors"
+              className="hover:text-stone-900 dark:hover:text-stone-100 transition-colors"
             >
               Admin Console
             </Link>
             {breadcrumb.map((crumb, i) => (
               <span key={i} className="flex items-center gap-1.5">
-                <ChevronRight size={12} className="shrink-0" />
+                <ChevronRight size={12} className="shrink-0 text-stone-400 dark:text-stone-600" />
                 {crumb.href ? (
                   <Link
                     href={crumb.href}
-                    className="hover:text-stone-900 transition-colors"
+                    className="hover:text-stone-900 dark:hover:text-stone-100 transition-colors"
                   >
                     {crumb.label}
                   </Link>
                 ) : (
-                  <span className="text-stone-900 font-medium">
+                  <span className="text-stone-900 dark:text-stone-200 font-medium">
                     {crumb.label}
                   </span>
                 )}
@@ -56,15 +56,15 @@ export function AdminPageHeader({
         )}
 
         {/* Title */}
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-stone-900 flex items-center gap-2.5 leading-tight">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2.5 leading-tight">
           {Icon && (
-            <Icon size={26} className="text-rose-800 shrink-0" />
+            <Icon size={26} className="text-rose-800 dark:text-rose-400 shrink-0" />
           )}
           {title}
         </h1>
 
         {subtitle && (
-          <p className="text-sm text-stone-500 max-w-xl leading-relaxed">
+          <p className="text-sm text-stone-500 dark:text-stone-400 max-w-xl leading-relaxed">
             {subtitle}
           </p>
         )}
@@ -83,5 +83,6 @@ export function AdminPageHeader({
         </div>
       )}
     </div>
+
   );
 }

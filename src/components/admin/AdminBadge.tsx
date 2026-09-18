@@ -1,72 +1,73 @@
 const VARIANT_STYLES: Record<string, string> = {
   // Generic
-  default: "bg-stone-100 text-stone-700 border-stone-200",
-  success: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  warning: "bg-amber-50 text-amber-700 border-amber-200",
-  error: "bg-rose-50 text-rose-700 border-rose-200",
-  info: "bg-sky-50 text-sky-700 border-sky-200",
-  neutral: "bg-stone-100 text-stone-500 border-stone-200",
+  default: "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700",
+  success: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  warning: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
+  error: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
+  info: "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60",
+  neutral: "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 border-stone-200 dark:border-stone-700",
 
   // Roles
-  admin: "bg-rose-50 text-rose-800 border-rose-200",
-  owner: "bg-amber-50 text-amber-800 border-amber-200",
-  customer: "bg-stone-50 text-stone-600 border-stone-200",
+  admin: "bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
+  owner: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
+  customer: "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700",
 
   // Booking statuses
-  pending: "bg-amber-50 text-amber-700 border-amber-200",
-  confirmed: "bg-sky-50 text-sky-700 border-sky-200",
-  active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  completed: "bg-stone-100 text-stone-600 border-stone-200",
-  cancelled: "bg-rose-50 text-rose-700 border-rose-200",
-  disputed: "bg-red-50 text-red-700 border-red-200",
-  pickup_scheduled: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  out_for_delivery: "bg-violet-50 text-violet-700 border-violet-200",
-  delivered: "bg-teal-50 text-teal-700 border-teal-200",
-  return_scheduled: "bg-orange-50 text-orange-700 border-orange-200",
-  returned: "bg-teal-50 text-teal-700 border-teal-200",
-  inspection: "bg-purple-50 text-purple-700 border-purple-200",
+  pending: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
+  confirmed: "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60",
+  active: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  completed: "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700",
+  cancelled: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
+  disputed: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60",
+  pickup_scheduled: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60",
+  out_for_delivery: "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/60",
+  delivered: "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60",
+  return_scheduled: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/60",
+  returned: "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60",
+  inspection: "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60",
 
   // Payment statuses
-  paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  successful: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  partially_refunded: "bg-orange-50 text-orange-700 border-orange-200",
-  refunded: "bg-sky-50 text-sky-700 border-sky-200",
-  failed: "bg-rose-50 text-rose-700 border-rose-200",
-  created: "bg-stone-100 text-stone-500 border-stone-200",
+  paid: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  successful: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  partially_refunded: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/60",
+  refunded: "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60",
+  failed: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
+  created: "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 border-stone-200 dark:border-stone-700",
 
   // Dispute statuses
-  open: "bg-rose-50 text-rose-700 border-rose-200",
-  under_review: "bg-amber-50 text-amber-700 border-amber-200",
-  resolved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  rejected: "bg-stone-100 text-stone-500 border-stone-200",
+  open: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
+  under_review: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
+  resolved: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  rejected: "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 border-stone-200 dark:border-stone-700",
 
   // Outfit statuses
-  draft: "bg-stone-100 text-stone-500 border-stone-200",
-  pending_review: "bg-amber-50 text-amber-700 border-amber-200",
-  published: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  paused: "bg-orange-50 text-orange-700 border-orange-200",
-  rented: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  archived: "bg-stone-100 text-stone-400 border-stone-200",
+  draft: "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 border-stone-200 dark:border-stone-700",
+  pending_review: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
+  published: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  paused: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/60",
+  rented: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60",
+  archived: "bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-500 border-stone-200 dark:border-stone-700",
 
   // Verification / application statuses
-  approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  verified: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  changes_requested: "bg-orange-50 text-orange-700 border-orange-200",
+  approved: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  verified: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  changes_requested: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/60",
 
   // Condition statuses
-  good: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  like_new: "bg-teal-50 text-teal-700 border-teal-200",
-  excellent: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  minor_damage: "bg-amber-50 text-amber-700 border-amber-200",
-  major_damage: "bg-rose-50 text-rose-700 border-rose-200",
-  missing_item: "bg-red-50 text-red-700 border-red-200",
+  good: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  like_new: "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60",
+  excellent: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  minor_damage: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
+  major_damage: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
+  missing_item: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60",
 
   // Boolean-like
-  true: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  false: "bg-stone-100 text-stone-500 border-stone-200",
-  active_bool: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  inactive_bool: "bg-stone-100 text-stone-500 border-stone-200",
+  true: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  false: "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 border-stone-200 dark:border-stone-700",
+  active_bool: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  inactive_bool: "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 border-stone-200 dark:border-stone-700",
 };
+
 
 function formatLabel(value: string): string {
   return value

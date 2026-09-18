@@ -114,10 +114,9 @@ export function MiniLineChart({
             cx={p.x}
             cy={p.y}
             r={4}
-            fill="white"
             stroke={color}
             strokeWidth={1.5}
-            className="cursor-pointer opacity-0 hover:opacity-100"
+            className="cursor-pointer opacity-0 hover:opacity-100 fill-white dark:fill-stone-900"
             style={{ transition: "opacity 0.15s" }}
             onMouseEnter={() => setTooltip(p)}
           />
@@ -132,8 +131,8 @@ export function MiniLineChart({
             width={56}
             height={22}
             rx={4}
-            fill="#1c1917"
-            opacity={0.9}
+            className="fill-stone-900 dark:fill-stone-800"
+            opacity={0.95}
           />
           <text
             x={Math.min(tooltip.x, width - 32)}
@@ -147,6 +146,7 @@ export function MiniLineChart({
           </text>
         </g>
       )}
+
     </svg>
   );
 }

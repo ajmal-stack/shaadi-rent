@@ -43,7 +43,7 @@ export function BarChart({
               {/* Tooltip */}
               {isHovered && (
                 <div
-                  className="absolute z-10 bg-stone-900 text-white text-[10px] font-bold px-2 py-1 rounded-lg pointer-events-none whitespace-nowrap shadow-lg"
+                  className="absolute z-10 bg-stone-900 dark:bg-stone-800 text-white text-[10px] font-bold px-2 py-1 rounded-lg pointer-events-none whitespace-nowrap shadow-lg border border-stone-800 dark:border-stone-700"
                   style={{ transform: "translateY(-4px)" }}
                 >
                   {formatValue(item.value)}
@@ -72,12 +72,13 @@ export function BarChart({
         {data.map((item, i) => (
           <div
             key={i}
-            className="flex-1 text-center text-[9px] text-stone-400 truncate"
+            className="flex-1 text-center text-[9px] text-stone-400 dark:text-stone-500 truncate"
           >
             {item.label}
           </div>
         ))}
       </div>
+
     </div>
   );
 }

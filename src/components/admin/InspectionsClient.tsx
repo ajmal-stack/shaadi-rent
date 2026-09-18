@@ -102,7 +102,7 @@ export function InspectionsClient({ initialInspections }: InspectionsClientProps
       </div>
 
       {/* Condition sub-filter */}
-      <div className="flex items-center gap-2 text-xs text-stone-500 flex-wrap">
+      <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 flex-wrap">
         <span className="font-medium">Condition:</span>
         {(["all", "good", "minor_damage", "major_damage", "missing_item"] as const).map((c) => (
           <button
@@ -110,7 +110,9 @@ export function InspectionsClient({ initialInspections }: InspectionsClientProps
             type="button"
             onClick={() => setConditionFilter(c)}
             className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-colors ${
-              conditionFilter === c ? "bg-rose-800 text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+              conditionFilter === c
+                ? "bg-rose-800 dark:bg-rose-700 text-white"
+                : "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700"
             }`}
           >
             {c === "all" ? `All (${conditionCounts.all})` : `${c.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")} (${conditionCounts[c]})`}
@@ -118,7 +120,7 @@ export function InspectionsClient({ initialInspections }: InspectionsClientProps
         ))}
       </div>
 
-      <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden shadow-xs">
         {filtered.length === 0 ? (
           <AdminEmptyState
             icon={ClipboardCheck}
@@ -127,21 +129,21 @@ export function InspectionsClient({ initialInspections }: InspectionsClientProps
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-stone-100">
+            <table className="min-w-full divide-y divide-stone-100 dark:divide-stone-800">
               <thead>
-                <tr className="bg-stone-50">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Type</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden sm:table-cell">Booking</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Condition</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden md:table-cell">Deduction</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden lg:table-cell">Inspector</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden lg:table-cell">Notes</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden xl:table-cell">Date</th>
+                <tr className="bg-stone-50 dark:bg-stone-900/90 border-b border-stone-100 dark:border-stone-800">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Type</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden sm:table-cell">Booking</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Condition</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden md:table-cell">Deduction</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden lg:table-cell">Inspector</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden lg:table-cell">Notes</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden xl:table-cell">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {filtered.map((inspection) => (
-                  <tr key={inspection.id} className="hover:bg-stone-50/60 transition-colors">
+                  <tr key={inspection.id} className="hover:bg-stone-50/60 dark:hover:bg-stone-800/50 transition-colors">
                     <td className="px-4 py-3">
                       <AdminBadge
                         status={inspection.inspection_type === "pre_rental" ? "info" : "warning"}
@@ -149,7 +151,7 @@ export function InspectionsClient({ initialInspections }: InspectionsClientProps
                       />
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className="font-mono text-xs font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-lg">
+                      <span className="font-mono text-xs font-bold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded-lg">
                         {inspection.bookings?.booking_number ?? "—"}
                       </span>
                     </td>
@@ -157,22 +159,22 @@ export function InspectionsClient({ initialInspections }: InspectionsClientProps
                       <AdminBadge status={inspection.condition_status} />
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className={`text-sm font-semibold ${inspection.deduction_amount > 0 ? "text-rose-700" : "text-stone-400"}`}>
+                      <span className={`text-sm font-semibold ${inspection.deduction_amount > 0 ? "text-rose-700 dark:text-rose-400" : "text-stone-400 dark:text-stone-500"}`}>
                         {formatCurrency(inspection.deduction_amount)}
                       </span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className="text-sm text-stone-700">
+                      <span className="text-sm text-stone-700 dark:text-stone-300">
                         {inspection.inspector?.full_name ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className="text-xs text-stone-500 max-w-[180px] truncate block">
+                      <span className="text-xs text-stone-500 dark:text-stone-400 max-w-[180px] truncate block">
                         {inspection.notes ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3 hidden xl:table-cell">
-                      <span className="text-xs text-stone-500">
+                      <span className="text-xs text-stone-500 dark:text-stone-400">
                         {formatDate(inspection.created_at)}
                       </span>
                     </td>
@@ -185,7 +187,7 @@ export function InspectionsClient({ initialInspections }: InspectionsClientProps
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-xs text-stone-400 text-right">
+        <p className="text-xs text-stone-400 dark:text-stone-500 text-right">
           Showing {filtered.length} of {initialInspections.length} inspections
         </p>
       )}

@@ -130,10 +130,10 @@ export function DashboardCharts({
       {/* ── Charts Row ──────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Bookings trend chart */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-sm">
           <div className="mb-4">
-            <h3 className="text-sm font-bold text-stone-800">Bookings — Last 30 Days</h3>
-            <p className="text-xs text-stone-400 mt-0.5">Daily new bookings</p>
+            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">Bookings — Last 30 Days</h3>
+            <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Daily new bookings</p>
           </div>
           <MiniLineChart
             data={bookingsByDay}
@@ -145,10 +145,10 @@ export function DashboardCharts({
         </div>
 
         {/* Revenue bar chart */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-sm">
           <div className="mb-4">
-            <h3 className="text-sm font-bold text-stone-800">Revenue — Last 14 Days</h3>
-            <p className="text-xs text-stone-400 mt-0.5">Daily confirmed payments (₹)</p>
+            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">Revenue — Last 14 Days</h3>
+            <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Daily confirmed payments (₹)</p>
           </div>
           <BarChart
             data={revenueByDay}
@@ -162,24 +162,24 @@ export function DashboardCharts({
       {/* ── Bottom Row: Donut + Recent Bookings ─────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
         {/* Booking status donut */}
-        <div className="lg:col-span-2 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <div className="lg:col-span-2 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-sm">
           <div className="mb-5">
-            <h3 className="text-sm font-bold text-stone-800">Booking Status</h3>
-            <p className="text-xs text-stone-400 mt-0.5">All-time breakdown</p>
+            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">Booking Status</h3>
+            <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">All-time breakdown</p>
           </div>
           <DonutChart segments={bookingStatusBreakdown} size={148} thickness={24} />
         </div>
 
         {/* Recent Bookings */}
-        <div className="lg:col-span-3 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <div className="lg:col-span-3 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-stone-800">Recent Bookings</h3>
-              <p className="text-xs text-stone-400 mt-0.5">Latest rental transactions</p>
+              <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">Recent Bookings</h3>
+              <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Latest rental transactions</p>
             </div>
             <a
               href="/admin/bookings"
-              className="text-xs font-semibold text-rose-800 hover:text-rose-950"
+              className="text-xs font-semibold text-rose-800 dark:text-rose-400 hover:text-rose-950 dark:hover:text-rose-300"
             >
               View all →
             </a>
@@ -187,6 +187,7 @@ export function DashboardCharts({
           <RecentBookingsFeed bookings={recentBookings} />
         </div>
       </div>
+
     </div>
   );
 }

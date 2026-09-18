@@ -118,12 +118,12 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
 
       {/* Resolution panel */}
       {resolving && (
-        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className={`font-semibold text-sm ${resolving.action === "resolved" ? "text-emerald-800" : "text-rose-800"}`}>
+            <h3 className={`font-semibold text-sm ${resolving.action === "resolved" ? "text-emerald-800 dark:text-emerald-400" : "text-rose-800 dark:text-rose-400"}`}>
               {resolving.action === "resolved" ? "✅ Resolve Dispute" : "❌ Reject Dispute"}
             </h3>
-            <button type="button" onClick={() => { setResolving(null); setResolutionNotes(""); }} className="text-stone-400 hover:text-stone-700">
+            <button type="button" onClick={() => { setResolving(null); setResolutionNotes(""); }} className="text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300">
               <X size={16} />
             </button>
           </div>
@@ -132,7 +132,7 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
             onChange={(e) => setResolutionNotes(e.target.value)}
             placeholder={resolving.action === "resolved" ? "Describe the resolution and outcome…" : "Reason for rejection…"}
             rows={3}
-            className="w-full px-3 py-2 text-sm border border-stone-200 rounded-xl bg-white text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 transition resize-none"
+            className="w-full px-3 py-2 text-sm border border-stone-200 dark:border-stone-800 rounded-xl bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 transition resize-none"
           />
           <div className="flex gap-2">
             <button
@@ -145,61 +145,61 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
             >
               {isPending ? "Submitting…" : `Confirm ${resolving.action === "resolved" ? "Resolution" : "Rejection"}`}
             </button>
-            <button type="button" onClick={() => { setResolving(null); setResolutionNotes(""); }} className="px-4 py-2 text-stone-600 text-sm hover:bg-stone-100 rounded-xl transition-colors">
+            <button type="button" onClick={() => { setResolving(null); setResolutionNotes(""); }} className="px-4 py-2 text-stone-600 dark:text-stone-400 text-sm hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors">
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden shadow-xs">
         {filtered.length === 0 ? (
           <AdminEmptyState icon={AlertTriangle} title="No disputes found" description="No disputes match the current filter." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-stone-100">
+            <table className="min-w-full divide-y divide-stone-100 dark:divide-stone-800">
               <thead>
-                <tr className="bg-stone-50">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Dispute</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden md:table-cell">Raised By</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden sm:table-cell">Booking</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden lg:table-cell">Amount</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Status</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden xl:table-cell">Filed</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">Actions</th>
+                <tr className="bg-stone-50 dark:bg-stone-900/90 border-b border-stone-100 dark:border-stone-800">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Dispute</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden md:table-cell">Raised By</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden sm:table-cell">Booking</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden lg:table-cell">Amount</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden xl:table-cell">Filed</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {filtered.map((dispute) => (
-                  <tr key={dispute.id} className="hover:bg-stone-50/60 transition-colors">
+                  <tr key={dispute.id} className="hover:bg-stone-50/60 dark:hover:bg-stone-800/50 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="text-sm font-semibold text-stone-900">{dispute.reason}</p>
+                      <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{dispute.reason}</p>
                       {dispute.description && (
-                        <p className="text-xs text-stone-400 mt-0.5 max-w-[200px] truncate">{dispute.description}</p>
+                        <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5 max-w-[200px] truncate">{dispute.description}</p>
                       )}
                       {dispute.resolution_notes && (
-                        <p className="text-[11px] text-emerald-600 mt-0.5 max-w-[200px] truncate">↳ {dispute.resolution_notes}</p>
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 max-w-[200px] truncate">↳ {dispute.resolution_notes}</p>
                       )}
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <p className="text-sm text-stone-700">{dispute.profiles?.full_name ?? "—"}</p>
-                      <p className="text-xs text-stone-400 truncate max-w-[140px]">{dispute.profiles?.email ?? ""}</p>
+                      <p className="text-sm text-stone-700 dark:text-stone-300">{dispute.profiles?.full_name ?? "—"}</p>
+                      <p className="text-xs text-stone-400 dark:text-stone-500 truncate max-w-[140px]">{dispute.profiles?.email ?? ""}</p>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className="font-mono text-xs font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-lg">
+                      <span className="font-mono text-xs font-bold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded-lg">
                         {dispute.bookings?.booking_number ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       {dispute.amount != null ? (
-                        <span className="text-sm font-semibold text-stone-900">{formatCurrency(dispute.amount)}</span>
+                        <span className="text-sm font-semibold text-stone-900 dark:text-stone-100">{formatCurrency(dispute.amount)}</span>
                       ) : (
-                        <span className="text-xs text-stone-300">—</span>
+                        <span className="text-xs text-stone-300 dark:text-stone-600">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3"><AdminBadge status={dispute.status} /></td>
                     <td className="px-4 py-3 hidden xl:table-cell">
-                      <span className="text-xs text-stone-500">{formatDate(dispute.created_at)}</span>
+                      <span className="text-xs text-stone-500 dark:text-stone-400">{formatDate(dispute.created_at)}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 flex-wrap">
@@ -208,7 +208,7 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
                             type="button"
                             disabled={isPending}
                             onClick={() => handleMarkUnderReview(dispute.id)}
-                            className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 hover:bg-amber-50 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+                            className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
                           >
                             Review
                           </button>
@@ -218,21 +218,21 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
                             <button
                               type="button"
                               onClick={() => setResolving({ id: dispute.id, action: "resolved" })}
-                              className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-colors"
+                              className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 px-2 py-1 rounded-lg transition-colors"
                             >
                               Resolve
                             </button>
                             <button
                               type="button"
                               onClick={() => setResolving({ id: dispute.id, action: "rejected" })}
-                              className="text-[11px] font-semibold text-rose-700 hover:text-rose-900 hover:bg-rose-50 px-2 py-1 rounded-lg transition-colors"
+                              className="text-[11px] font-semibold text-rose-700 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-2 py-1 rounded-lg transition-colors"
                             >
                               Reject
                             </button>
                           </>
                         )}
                         {(dispute.status === "resolved" || dispute.status === "rejected") && (
-                          <span className="text-[11px] text-stone-400">Closed</span>
+                          <span className="text-[11px] text-stone-400 dark:text-stone-500">Closed</span>
                         )}
                       </div>
                     </td>
@@ -245,7 +245,7 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-xs text-stone-400 text-right">Showing {filtered.length} of {disputes.length} disputes</p>
+        <p className="text-xs text-stone-400 dark:text-stone-500 text-right">Showing {filtered.length} of {disputes.length} disputes</p>
       )}
     </div>
   );

@@ -71,7 +71,7 @@ export function DonutChart({
             cy={cy}
             r={r}
             fill="none"
-            stroke="#f5f5f4"
+            className="stroke-stone-100 dark:stroke-stone-800"
             strokeWidth={thickness}
           />
 
@@ -105,7 +105,8 @@ export function DonutChart({
             y={cy - 8}
             textAnchor="middle"
             dominantBaseline="middle"
-            fill={hoveredArc ? hoveredArc.color : "#1c1917"}
+            fill={hoveredArc ? hoveredArc.color : "currentColor"}
+            className={hoveredArc ? "" : "text-stone-900 dark:text-stone-100"}
             fontSize={hoveredArc ? 14 : 22}
             fontWeight={700}
           >
@@ -116,7 +117,7 @@ export function DonutChart({
             y={cy + 14}
             textAnchor="middle"
             dominantBaseline="middle"
-            fill="#a8a29e"
+            className="fill-stone-400 dark:fill-stone-500"
             fontSize={10}
             fontWeight={500}
           >
@@ -138,14 +139,15 @@ export function DonutChart({
                 className="w-2.5 h-2.5 rounded-full flex-shrink-0 transition-transform group-hover:scale-125"
                 style={{ background: seg.color }}
               />
-              <span className="text-xs text-stone-500 truncate group-hover:text-stone-700 transition-colors">
+              <span className="text-xs text-stone-500 dark:text-stone-400 truncate group-hover:text-stone-800 dark:group-hover:text-stone-200 transition-colors">
                 {seg.label}
               </span>
-              <span className="ml-auto text-xs font-bold text-stone-700 pl-2">{seg.value}</span>
+              <span className="ml-auto text-xs font-bold text-stone-700 dark:text-stone-300 pl-2">{seg.value}</span>
             </div>
           ))}
         </div>
       )}
+
     </div>
   );
 }

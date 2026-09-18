@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminThemeProvider } from "@/components/admin/AdminThemeProvider";
 
 /**
  * Admin route group layout — runs before every page inside (admin)/.
@@ -54,13 +55,32 @@ export default async function AdminLayout({
     "Admin";
 
   return (
-    <AdminSidebar
-      pendingApplications={pendingCount ?? 0}
-      adminName={adminName}
-      adminEmail={user.email ?? ""}
-      adminAvatar={profile?.avatar_url ?? null}
-    >
-      {children}
-    </AdminSidebar>
+    <AdminThemeProvider>
+      {/* Immediate Anti-FOUC script to eliminate flash before React hydrates */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            try {
+              var t = localStorage.getItem('shaadi_admin_theme');
+              var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              if (t === 'dark' || (t !== 'light' && prefersDark)) {
+                document.documentElement.classList.add('dark');
+              } else {
+                document.documentElement.classList.remove('dark');
+              }
+            } catch(e) {}
+          `,
+        }}
+      />
+      <AdminSidebar
+        pendingApplications={pendingCount ?? 0}
+        adminName={adminName}
+        adminEmail={user.email ?? ""}
+        adminAvatar={profile?.avatar_url ?? null}
+      >
+        {children}
+      </AdminSidebar>
+    </AdminThemeProvider>
   );
 }
+

@@ -91,7 +91,7 @@ export function OwnersClient({ owners }: OwnersClientProps) {
         />
       </div>
 
-      <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden shadow-xs">
         {filtered.length === 0 ? (
           <AdminEmptyState
             icon={Store}
@@ -100,42 +100,42 @@ export function OwnersClient({ owners }: OwnersClientProps) {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-stone-100">
+            <table className="min-w-full divide-y divide-stone-100 dark:divide-stone-800">
               <thead>
-                <tr className="bg-stone-50">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">
+                <tr className="bg-stone-50 dark:bg-stone-900/90 border-b border-stone-100 dark:border-stone-800">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">
                     Owner
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden sm:table-cell">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden sm:table-cell">
                     Contact
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden md:table-cell">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden md:table-cell">
                     Location
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden lg:table-cell">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden lg:table-cell">
                     Outfits
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide hidden lg:table-cell">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide hidden lg:table-cell">
                     Joined
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">
                     Application
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {filtered.map((owner) => (
                   <tr
                     key={owner.id}
-                    className="hover:bg-stone-50/60 transition-colors"
+                    className="hover:bg-stone-50/60 dark:hover:bg-stone-800/50 transition-colors"
                   >
                     {/* Owner name */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-bold shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 flex items-center justify-center text-xs font-bold shrink-0">
                           {(owner.full_name ?? "?")
                             .split(" ")
                             .slice(0, 2)
@@ -144,10 +144,10 @@ export function OwnersClient({ owners }: OwnersClientProps) {
                             .toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-stone-900">
+                          <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
                             {owner.full_name ?? "—"}
                           </p>
-                          <p className="text-xs text-stone-400 sm:hidden">
+                          <p className="text-xs text-stone-400 dark:text-stone-500 sm:hidden">
                             {owner.email ?? "—"}
                           </p>
                         </div>
@@ -157,16 +157,16 @@ export function OwnersClient({ owners }: OwnersClientProps) {
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <div className="space-y-0.5">
                         {owner.email && (
-                          <div className="flex items-center gap-1.5 text-xs text-stone-600">
-                            <Mail size={11} className="text-stone-400 shrink-0" />
+                          <div className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-300">
+                            <Mail size={11} className="text-stone-400 dark:text-stone-500 shrink-0" />
                             <span className="truncate max-w-[180px]">
                               {owner.email}
                             </span>
                           </div>
                         )}
                         {owner.phone && (
-                          <div className="flex items-center gap-1.5 text-xs text-stone-500">
-                            <Phone size={11} className="text-stone-400 shrink-0" />
+                          <div className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
+                            <Phone size={11} className="text-stone-400 dark:text-stone-500 shrink-0" />
                             {owner.phone}
                           </div>
                         )}
@@ -175,12 +175,12 @@ export function OwnersClient({ owners }: OwnersClientProps) {
                     {/* Location */}
                     <td className="px-4 py-3 hidden md:table-cell">
                       {owner.city || owner.state ? (
-                        <div className="flex items-center gap-1 text-xs text-stone-500">
-                          <MapPin size={11} className="text-stone-400 shrink-0" />
+                        <div className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
+                          <MapPin size={11} className="text-stone-400 dark:text-stone-500 shrink-0" />
                           {[owner.city, owner.state].filter(Boolean).join(", ")}
                         </div>
                       ) : (
-                        <span className="text-xs text-stone-300">—</span>
+                        <span className="text-xs text-stone-300 dark:text-stone-600">—</span>
                       )}
                     </td>
                     {/* Status */}
@@ -189,13 +189,13 @@ export function OwnersClient({ owners }: OwnersClientProps) {
                     </td>
                     {/* Outfits count */}
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className="text-sm font-semibold text-stone-700">
+                      <span className="text-sm font-semibold text-stone-700 dark:text-stone-300">
                         {owner.outfit_count}
                       </span>
                     </td>
                     {/* Joined */}
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className="text-xs text-stone-500">
+                      <span className="text-xs text-stone-500 dark:text-stone-400">
                         {formatDate(owner.created_at)}
                       </span>
                     </td>
@@ -203,7 +203,7 @@ export function OwnersClient({ owners }: OwnersClientProps) {
                     <td className="px-4 py-3">
                       <Link
                         href="/admin/applications"
-                        className="inline-flex items-center gap-1 text-xs font-medium text-rose-700 hover:text-rose-900 transition-colors"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-rose-700 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-300 transition-colors"
                       >
                         <ExternalLink size={12} />
                         View
@@ -218,7 +218,7 @@ export function OwnersClient({ owners }: OwnersClientProps) {
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-xs text-stone-400 text-right">
+        <p className="text-xs text-stone-400 dark:text-stone-500 text-right">
           Showing {filtered.length} of {owners.length} owners
         </p>
       )}

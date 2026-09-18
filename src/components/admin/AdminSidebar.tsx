@@ -25,9 +25,11 @@ import {
   ExternalLink,
   Sparkles,
   ShieldAlert,
+  Palette,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { AdminThemeToggle } from "./AdminThemeProvider";
 
 /* ── Types ──────────────────────────────────────────────────── */
 export interface NavItemConfig {
@@ -138,6 +140,11 @@ function getNavGroups(pendingCount?: number): NavGroupConfig[] {
           icon: Star,
         },
         {
+          href: "/admin/customization",
+          label: "Customization",
+          icon: Palette,
+        },
+        {
           href: "/admin/settings",
           label: "Settings",
           icon: Settings,
@@ -179,8 +186,8 @@ function NavItemRow({
         transition-all duration-200 select-none
         ${
           isActive
-            ? "bg-rose-50 text-rose-950 font-semibold shadow-2xs ring-1 ring-rose-200/80"
-            : "text-stone-600 hover:bg-stone-100/80 hover:text-stone-950"
+            ? "bg-rose-50 dark:bg-rose-950/40 text-rose-950 dark:text-rose-200 font-semibold shadow-2xs ring-1 ring-rose-200/80 dark:ring-rose-800/60"
+            : "text-stone-600 dark:text-stone-400 hover:bg-stone-100/80 dark:hover:bg-stone-800/80 hover:text-stone-950 dark:hover:text-stone-100"
         }
         ${collapsed ? "justify-center px-2" : ""}
       `}
@@ -195,8 +202,8 @@ function NavItemRow({
         size={18}
         className={`shrink-0 transition-transform duration-200 group-hover:scale-110 ${
           isActive
-            ? "text-rose-700"
-            : "text-stone-400 group-hover:text-stone-700"
+            ? "text-rose-700 dark:text-rose-400"
+            : "text-stone-400 dark:text-stone-500 group-hover:text-stone-700 dark:group-hover:text-stone-300"
         }`}
       />
 
@@ -216,7 +223,7 @@ function NavItemRow({
 
       {/* Collapsed Dot/Mini Badge */}
       {item.badge != null && item.badge > 0 && collapsed && (
-        <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-rose-600 to-rose-700 text-[9px] font-bold text-white ring-2 ring-white shadow-xs animate-pulse">
+        <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-rose-600 to-rose-700 text-[9px] font-bold text-white ring-2 ring-white dark:ring-stone-900 shadow-xs animate-pulse">
           {item.badge > 9 ? "9+" : item.badge}
         </span>
       )}
@@ -224,7 +231,7 @@ function NavItemRow({
       {/* Collapsed Floating Tooltip */}
       {collapsed && (
         <div className="pointer-events-none absolute left-full ml-3 z-50 hidden opacity-0 group-hover:flex group-hover:opacity-100 transition-opacity duration-150 items-center">
-          <div className="flex items-center gap-2 whitespace-nowrap rounded-lg bg-stone-900/95 px-3 py-1.5 text-xs font-semibold text-white shadow-xl ring-1 ring-stone-700/80 backdrop-blur-md">
+          <div className="flex items-center gap-2 whitespace-nowrap rounded-lg bg-stone-900/95 dark:bg-stone-800/95 px-3 py-1.5 text-xs font-semibold text-white shadow-xl ring-1 ring-stone-700/80 dark:ring-stone-600 backdrop-blur-md">
             <span>{item.label}</span>
             {item.badge != null && item.badge > 0 && (
               <span className="rounded-full bg-rose-500/30 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-500/40">
@@ -235,6 +242,7 @@ function NavItemRow({
         </div>
       )}
     </Link>
+
   );
 }
 
@@ -322,11 +330,11 @@ export function AdminSidebar({
     const isCollapsed = isDrawer ? false : collapsed;
 
     return (
-      <div className="flex h-full flex-col justify-between overflow-hidden bg-white text-stone-700">
+      <div className="flex h-full flex-col justify-between overflow-hidden bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300">
         {/* Top Header / Branding */}
         <div className="flex flex-col shrink-0">
           <div
-            className={`flex items-center gap-3 px-4 py-4.5 border-b border-stone-200/80 ${
+            className={`flex items-center gap-3 px-4 py-4.5 border-b border-stone-200/80 dark:border-stone-800 ${
               isCollapsed ? "justify-center px-2" : "justify-between"
             }`}
           >
@@ -337,21 +345,21 @@ export function AdminSidebar({
               }`}
             >
               {/* Brand Ring Emblem */}
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-600 via-rose-700 to-rose-900 text-lg shadow-sm shadow-rose-900/15 ring-1 ring-rose-300/40 transition-transform group-hover:scale-105">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-600 via-rose-700 to-rose-900 text-lg shadow-sm shadow-rose-900/15 ring-1 ring-rose-300/40 dark:ring-rose-500/30 transition-transform group-hover:scale-105">
                 💍
               </div>
 
               {!isCollapsed && (
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-display text-base font-bold text-stone-950 leading-none tracking-tight">
+                    <span className="font-display text-base font-bold text-stone-950 dark:text-stone-100 leading-none tracking-tight">
                       ShaadiRent
                     </span>
                     <Sparkles size={12} className="text-amber-500 shrink-0" />
                   </div>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-rose-800 leading-none">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-rose-800 dark:text-rose-400 leading-none">
                       Admin Console
                     </span>
                   </div>
@@ -364,7 +372,7 @@ export function AdminSidebar({
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-stone-100 text-stone-500 hover:text-stone-900 hover:bg-stone-200 transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
                 aria-label="Close admin menu"
               >
                 <X size={18} />
@@ -380,14 +388,14 @@ export function AdminSidebar({
               <div key={gi} className="space-y-1">
                 {/* Group Heading (expanded only) */}
                 {group.title && !isCollapsed && (
-                  <p className="px-3 pt-1 text-[10px] font-bold uppercase tracking-wider text-stone-400 select-none">
+                  <p className="px-3 pt-1 text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500 select-none">
                     {group.title}
                   </p>
                 )}
 
                 {/* Group Divider (collapsed only) */}
                 {isCollapsed && gi > 0 && (
-                  <div className="my-2 border-t border-stone-200/80 mx-1" />
+                  <div className="my-2 border-t border-stone-200/80 dark:border-stone-800 mx-1" />
                 )}
 
                 {/* Group Links */}
@@ -407,7 +415,7 @@ export function AdminSidebar({
         </div>
 
         {/* Bottom Section: Admin Profile & Actions */}
-        <div className="shrink-0 border-t border-stone-200/80 p-3 space-y-2 bg-stone-50/60">
+        <div className="shrink-0 border-t border-stone-200/80 dark:border-stone-800 p-3 space-y-2 bg-stone-50/60 dark:bg-stone-950/40">
           {/* Quick External Storefront Link */}
           <Link
             href="/"
@@ -415,18 +423,18 @@ export function AdminSidebar({
             rel="noopener noreferrer"
             title={isCollapsed ? "View Live Storefront" : undefined}
             className={`
-              group flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-stone-600
-              hover:bg-white hover:text-stone-950 hover:shadow-2xs hover:ring-1 hover:ring-stone-200/70 transition-all
+              group flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-stone-600 dark:text-stone-400
+              hover:bg-white dark:hover:bg-stone-800 hover:text-stone-950 dark:hover:text-stone-100 hover:shadow-2xs hover:ring-1 hover:ring-stone-200/70 dark:hover:ring-stone-700 transition-all
               ${isCollapsed ? "justify-center px-2" : ""}
             `}
           >
-            <ExternalLink size={16} className="shrink-0 text-stone-400 group-hover:text-rose-700" />
+            <ExternalLink size={16} className="shrink-0 text-stone-400 group-hover:text-rose-700 dark:group-hover:text-rose-400" />
             {!isCollapsed && (
               <span className="flex-1 truncate tracking-tight">View Storefront</span>
             )}
             {isCollapsed && (
               <div className="pointer-events-none absolute left-full ml-3 z-50 hidden opacity-0 group-hover:flex group-hover:opacity-100 transition-opacity duration-150 items-center">
-                <div className="whitespace-nowrap rounded-lg bg-stone-900/95 px-3 py-1.5 text-xs font-semibold text-white shadow-xl ring-1 ring-stone-700/80 backdrop-blur-md">
+                <div className="whitespace-nowrap rounded-lg bg-stone-900/95 dark:bg-stone-800/95 px-3 py-1.5 text-xs font-semibold text-white shadow-xl ring-1 ring-stone-700/80 dark:ring-stone-600 backdrop-blur-md">
                   View Live Storefront
                 </div>
               </div>
@@ -436,7 +444,7 @@ export function AdminSidebar({
           {/* Admin User Card */}
           <div
             className={`
-              flex items-center gap-3 rounded-xl p-2 bg-white border border-stone-200/80 shadow-2xs
+              flex items-center gap-3 rounded-xl p-2 bg-white dark:bg-stone-800/80 border border-stone-200/80 dark:border-stone-700 shadow-2xs
               ${isCollapsed ? "justify-center" : ""}
             `}
           >
@@ -446,23 +454,23 @@ export function AdminSidebar({
                 <img
                   src={adminAvatar}
                   alt={adminName}
-                  className="h-8 w-8 rounded-xl object-cover ring-1 ring-stone-200"
+                  className="h-8 w-8 rounded-xl object-cover ring-1 ring-stone-200 dark:ring-stone-700"
                 />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-rose-900 text-xs font-bold text-white shadow-inner ring-1 ring-rose-200/60">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-rose-900 text-xs font-bold text-white shadow-inner ring-1 ring-rose-200/60 dark:ring-rose-800/40">
                   {initials}
                 </div>
               )}
               {/* Online indicator dot */}
-              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-stone-800" />
             </div>
 
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-stone-900 leading-tight">
+                <p className="truncate text-xs font-semibold text-stone-900 dark:text-stone-100 leading-tight">
                   {adminName}
                 </p>
-                <p className="truncate text-[10px] text-stone-500 leading-tight">
+                <p className="truncate text-[10px] text-stone-500 dark:text-stone-400 leading-tight">
                   {adminEmail}
                 </p>
               </div>
@@ -476,16 +484,16 @@ export function AdminSidebar({
             title={isCollapsed ? "Sign Out" : undefined}
             className={`
               group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium
-              text-stone-600 hover:bg-rose-50 hover:text-rose-700 hover:ring-1 hover:ring-rose-200/60 transition-all duration-150
+              text-stone-600 dark:text-stone-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-300 hover:ring-1 hover:ring-rose-200/60 dark:hover:ring-rose-800/50 transition-all duration-150
               ${isCollapsed ? "justify-center px-2" : ""}
             `}
           >
-            <LogOut size={16} className="shrink-0 text-stone-400 group-hover:text-rose-600" />
+            <LogOut size={16} className="shrink-0 text-stone-400 group-hover:text-rose-600 dark:group-hover:text-rose-400" />
             {!isCollapsed && <span className="tracking-tight">Sign Out</span>}
 
             {isCollapsed && (
               <div className="pointer-events-none absolute left-full ml-3 z-50 hidden opacity-0 group-hover:flex group-hover:opacity-100 transition-opacity duration-150 items-center">
-                <div className="whitespace-nowrap rounded-lg bg-stone-900/95 px-3 py-1.5 text-xs font-semibold text-rose-300 shadow-xl ring-1 ring-stone-700/80 backdrop-blur-md">
+                <div className="whitespace-nowrap rounded-lg bg-stone-900/95 dark:bg-stone-800/95 px-3 py-1.5 text-xs font-semibold text-rose-300 shadow-xl ring-1 ring-stone-700/80 dark:ring-stone-600 backdrop-blur-md">
                   Sign Out
                 </div>
               </div>
@@ -496,12 +504,12 @@ export function AdminSidebar({
           <button
             type="button"
             onClick={toggleCollapse}
-            className="hidden lg:flex w-full items-center justify-center gap-2 rounded-xl border border-stone-200/80 bg-white hover:bg-stone-50 py-2 text-xs text-stone-600 hover:text-stone-900 shadow-2xs transition-all"
+            className="hidden lg:flex w-full items-center justify-center gap-2 rounded-xl border border-stone-200/80 dark:border-stone-700 bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 py-2 text-xs text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 shadow-2xs transition-all"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? (
-              <ChevronRight size={15} className="text-rose-700" />
+              <ChevronRight size={15} className="text-rose-700 dark:text-rose-400" />
             ) : (
               <>
                 <ChevronLeft size={15} />
@@ -516,14 +524,14 @@ export function AdminSidebar({
 
   /* ── Layout Wrap ────────────────────────────────────────────── */
   return (
-    <div className="relative min-h-screen bg-stone-50 flex flex-col font-sans selection:bg-rose-100 selection:text-rose-900">
+    <div className="relative min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-rose-100 dark:selection:bg-rose-950 selection:text-rose-900 dark:selection:text-rose-200 transition-colors duration-200">
       {/* ── Mobile Sticky Topbar (< lg) ─────────────────────────── */}
-      <header className="lg:hidden sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-stone-200/80 bg-white/95 px-4 backdrop-blur-md text-stone-900 shadow-2xs">
+      <header className="lg:hidden sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-stone-200/80 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95 px-4 backdrop-blur-md text-stone-900 dark:text-stone-100 shadow-2xs">
         {/* Left: Hamburger Button */}
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors ring-1 ring-stone-200/80"
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors ring-1 ring-stone-200/80 dark:ring-stone-700"
           aria-label="Open administration navigation"
         >
           <Menu size={20} />
@@ -531,32 +539,34 @@ export function AdminSidebar({
 
         {/* Center: Brand & Section */}
         <Link href="/admin" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-rose-900 text-sm shadow-xs ring-1 ring-rose-200/60">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-rose-900 text-sm shadow-xs ring-1 ring-rose-200/60 dark:ring-rose-500/30">
             💍
           </div>
           <div className="text-left">
-            <span className="font-display text-sm font-bold text-stone-950 leading-none block">
+            <span className="font-display text-sm font-bold text-stone-950 dark:text-stone-100 leading-none block">
               ShaadiRent
             </span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-rose-800 block mt-0.5">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-rose-800 dark:text-rose-400 block mt-0.5">
               Admin Console
             </span>
           </div>
         </Link>
 
-        {/* Right: Quick Verification Badge or Avatar */}
+        {/* Right: Theme Toggle + Verification Badge + Avatar */}
         <div className="flex items-center gap-2">
+          <AdminThemeToggle />
+
           {pendingApplications > 0 && (
             <Link
               href="/admin/applications"
-              className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-200"
+              className="flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 text-xs font-bold text-amber-800 dark:text-amber-300 ring-1 ring-amber-200 dark:ring-amber-800/60"
             >
-              <ShieldAlert size={14} className="text-amber-600" />
+              <ShieldAlert size={14} className="text-amber-600 dark:text-amber-400" />
               <span>{pendingApplications}</span>
             </Link>
           )}
 
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-rose-600 to-rose-900 text-xs font-bold text-white ring-1 ring-rose-200/60 shadow-xs">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-rose-600 to-rose-900 text-xs font-bold text-white ring-1 ring-rose-200/60 dark:ring-rose-800 shadow-xs">
             {initials}
           </div>
         </div>
@@ -565,7 +575,7 @@ export function AdminSidebar({
       {/* ── Mobile Drawer (< lg) ────────────────────────────────── */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-stone-950/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
+          className="lg:hidden fixed inset-0 z-40 bg-stone-950/60 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
           onClick={() => setMobileOpen(false)}
           aria-hidden="true"
         />
@@ -573,7 +583,7 @@ export function AdminSidebar({
 
       <aside
         className={`
-          lg:hidden fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-white border-r border-stone-200
+          lg:hidden fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-white dark:bg-stone-900 border-r border-stone-200 dark:border-stone-800
           shadow-2xl transform transition-transform duration-300 ease-out
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
         `}
@@ -585,7 +595,7 @@ export function AdminSidebar({
       <aside
         className={`
           hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col
-          bg-white border-r border-stone-200/80 shadow-xs
+          bg-white dark:bg-stone-900 border-r border-stone-200/80 dark:border-stone-800 shadow-xs
           transition-[width] duration-300 ease-in-out
           ${collapsed ? "w-20" : "w-64"}
         `}
@@ -602,13 +612,13 @@ export function AdminSidebar({
         `}
       >
         {/* Desktop Admin Header Bar */}
-        <header className="hidden lg:flex sticky top-0 z-20 h-16 items-center justify-between border-b border-stone-200/80 bg-white/85 px-6 sm:px-8 backdrop-blur-md shadow-2xs">
+        <header className="hidden lg:flex sticky top-0 z-20 h-16 items-center justify-between border-b border-stone-200/80 dark:border-stone-800 bg-white/85 dark:bg-stone-900/85 px-6 sm:px-8 backdrop-blur-md shadow-2xs transition-colors duration-200">
           <div className="flex items-center gap-3">
             {/* Quick Toggle Button in Header */}
             <button
               type="button"
               onClick={toggleCollapse}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-50 shadow-2xs transition-all"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-50 dark:hover:bg-stone-700 shadow-2xs transition-all"
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               aria-label="Toggle sidebar collapse"
             >
@@ -617,15 +627,15 @@ export function AdminSidebar({
 
             {/* Breadcrumb Context */}
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-stone-400">Admin</span>
-              <span className="text-stone-300">/</span>
-              <span className="font-semibold text-stone-900">{pageTitle}</span>
+              <span className="text-stone-400 dark:text-stone-500">Admin</span>
+              <span className="text-stone-300 dark:text-stone-600">/</span>
+              <span className="font-semibold text-stone-900 dark:text-stone-100">{pageTitle}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3.5">
             {/* Platform Security Badge */}
-            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/80 px-3 py-1 text-xs font-semibold text-emerald-800">
+            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/80 dark:bg-emerald-950/40 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>Live Production Admin</span>
             </div>
@@ -634,9 +644,9 @@ export function AdminSidebar({
             {pendingApplications > 0 && (
               <Link
                 href="/admin/applications"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100/80 transition-colors shadow-2xs"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-800 dark:text-amber-300 hover:bg-amber-100/80 dark:hover:bg-amber-900/40 transition-colors shadow-2xs"
               >
-                <ShieldAlert size={14} className="text-amber-600" />
+                <ShieldAlert size={14} className="text-amber-600 dark:text-amber-400" />
                 <span>{pendingApplications} Pending Verification</span>
               </Link>
             )}
@@ -646,14 +656,17 @@ export function AdminSidebar({
               href="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:text-stone-950 hover:border-stone-300 shadow-2xs transition-all"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-1.5 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-stone-100 hover:border-stone-300 dark:hover:border-stone-600 shadow-2xs transition-all"
             >
               <span>Storefront</span>
               <ExternalLink size={13} />
             </Link>
 
+            {/* Admin Theme Toggle */}
+            <AdminThemeToggle />
+
             {/* Admin Avatar Preview */}
-            <div className="flex items-center gap-2 pl-2 border-l border-stone-200">
+            <div className="flex items-center gap-2 pl-2 border-l border-stone-200 dark:border-stone-700">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-rose-700 to-rose-950 text-xs font-bold text-white shadow-xs ring-1 ring-amber-400/40">
                 {initials}
               </div>
@@ -667,14 +680,15 @@ export function AdminSidebar({
         </main>
 
         {/* Admin Footer */}
-        <footer className="border-t border-stone-200/80 bg-stone-100/50 py-4 px-6 sm:px-8 text-center text-xs text-stone-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <footer className="border-t border-stone-200/80 dark:border-stone-800 bg-stone-100/50 dark:bg-stone-900/50 py-4 px-6 sm:px-8 text-center text-xs text-stone-400 dark:text-stone-500 flex flex-col sm:flex-row items-center justify-between gap-2 transition-colors">
           <span>ShaadiRent Administrative Control Suite • Version 2.0</span>
-          <span className="text-[11px] text-stone-400">
+          <span className="text-[11px] text-stone-400 dark:text-stone-500">
             Protected by Row-Level Security & Role Authentication
           </span>
         </footer>
       </div>
     </div>
+
   );
 }
 
