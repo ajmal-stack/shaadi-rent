@@ -5,44 +5,60 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 /**
+ * Returns the public origin URL for the current request.
+ * Resolves x-forwarded-host / host dynamically, ensuring that
+ * production Vercel domains, custom domains, and localhost dev
+ * always generate the correct OAuth callback URL.
+ */
+function getSiteOrigin(headersList: Headers): string {
+  const forwardedHost = headersList.get("x-forwarded-host");
+  const host = forwardedHost || headersList.get("host");
+  const forwardedProto = headersList.get("x-forwarded-proto");
+  const isLocalhost = Boolean(
+    !host || host.includes("localhost") || host.includes("127.0.0.1")
+  );
+  const proto = forwardedProto || (isLocalhost ? "http" : "https");
+
+  // 1. If running with an actual host header in production, use it directly.
+  if (host && !isLocalhost) {
+    return `${proto}://${host}`;
+  }
+
+  // 2. Next, check origin header if present and not localhost
+  const originHeader = headersList.get("origin");
+  if (originHeader && !originHeader.includes("localhost")) {
+    return originHeader;
+  }
+
+  // 3. Fallback to production environment variables
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (siteUrl && !siteUrl.includes("localhost")) {
+    const clean = siteUrl.replace(/\/$/, "");
+    return clean.startsWith("http") ? clean : `https://${clean}`;
+  }
+
+  const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL || process.env.VERCEL_URL;
+  if (vercelUrl) {
+    const clean = vercelUrl.replace(/\/$/, "");
+    return clean.startsWith("http") ? clean : `https://${clean}`;
+  }
+
+  // 4. Localhost fallback
+  return host ? `${proto}://${host}` : "http://localhost:3000";
+}
+
+/**
  * Initiates Google OAuth login.
  *
  * Called via a form action from the login page (Server Action).
  * The OAuth redirect URL is constructed server-side so it is never
  * visible in client-side JavaScript bundles.
- *
- * Security:
- * - No client secrets are read here — Supabase handles the OAuth dance.
- * - The redirectTo URL is derived from NEXT_PUBLIC_SITE_URL (set per
- *   environment) so localhost dev and production Vercel never cross-pollinate.
- * - Role is NOT set here — the handle_new_user() DB trigger always assigns
- *   'customer'. Admin role requires direct DB intervention.
- * - The `next` param is validated server-side to be an internal path only.
  */
 export async function signInWithGoogle(formData: FormData) {
   const supabase = await createClient();
   const headersList = await headers();
 
-  // NEXT_PUBLIC_SITE_URL must be set per environment:
-  //   .env.local       → http://localhost:3000
-  //   Vercel (prod)    → https://your-production-domain.com
-  // This prevents Supabase from defaulting to the production site URL
-  // and inadvertently routing the OAuth code back to Vercel when on localhost.
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-
-  const host =
-    headersList.get("x-forwarded-host") ||
-    headersList.get("host") ||
-    "localhost:3000";
-  const proto =
-    headersList.get("x-forwarded-proto") ||
-    (host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https");
-
-  // Prefer explicit NEXT_PUBLIC_SITE_URL, then origin header, then host header.
-  const origin =
-    siteUrl ||
-    headersList.get("origin") ||
-    `${proto}://${host}`;
+  const origin = getSiteOrigin(headersList);
 
   // Read the `next` param from the form (hidden input) — validate it is internal.
   const rawNext = formData.get("next")?.toString() ?? "";
@@ -70,8 +86,8 @@ export async function signInWithGoogle(formData: FormData) {
   });
 
   if (error) {
-    // Redirect to error page — do not expose raw error details in the URL.
-    redirect("/auth/error");
+    console.error("[signInWithGoogle] OAuth initialization error:", error);
+    redirect(`/auth/error?message=${encodeURIComponent(error.message)}`);
   }
 
   if (data.url) {

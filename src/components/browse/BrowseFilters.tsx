@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   X,
@@ -9,8 +9,9 @@ import {
   Check,
   MapPin,
   Calendar as CalendarIcon,
+  ChevronDown,
 } from "lucide-react";
-import { DatePicker } from "@/components/ui/DatePicker";
+import { CustomCalendar } from "@/components/ui/CustomCalendar";
 
 export interface CategoryOption {
   id: string;
@@ -60,6 +61,47 @@ const DEFAULT_POPULAR_LOCATIONS = [
   "Lucknow",
 ];
 
+function formatDisplayDate(dateStr: string): string {
+  try {
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const d = new Date(
+        parseInt(parts[0], 10),
+        parseInt(parts[1], 10) - 1,
+        parseInt(parts[2], 10)
+      );
+      return d.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    }
+  } catch {
+    // fallback
+  }
+  return dateStr;
+}
+
+function parseToDate(val: string | null | undefined): Date | null {
+  if (!val) return null;
+  const parts = val.split("-");
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    return new Date(y, m, d);
+  }
+  const parsed = new Date(val);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function toISODateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 interface FilterInnerProps {
   updateParam: (key: string, value: string) => void;
   updatePriceTier: (min: string, max: string) => void;
@@ -72,6 +114,7 @@ interface FilterInnerProps {
   selectedLocation: string;
   selectedEventDate: string;
   availableCities: string[];
+  openCalendarModal: () => void;
 }
 
 function FilterInner({
@@ -86,11 +129,8 @@ function FilterInner({
   selectedLocation,
   selectedEventDate,
   availableCities,
+  openCalendarModal,
 }: FilterInnerProps) {
-  // Tomorrow is earliest valid event date for rental booking
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
   // Multi-size selection parser
   const selectedSizeList = selectedSize
     ? selectedSize.split(",").map((s) => s.trim()).filter(Boolean)
@@ -126,7 +166,7 @@ function FilterInner({
                 key={g.value}
                 type="button"
                 onClick={() => updateParam("gender", g.value)}
-                className={`rounded-lg py-1.5 text-xs font-semibold transition-all ${
+                className={`rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                   isActive
                     ? "bg-white text-rose-900 shadow-2xs"
                     : "text-stone-600 hover:text-stone-900"
@@ -139,7 +179,7 @@ function FilterInner({
         </div>
       </div>
 
-      {/* 2. Available on Date Filter (TASK 10.1) */}
+      {/* 2. Available on Date Filter (TASK 10.1 - FIXED: Never clipped by overflow) */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">
@@ -149,23 +189,52 @@ function FilterInner({
             <button
               type="button"
               onClick={() => updateParam("eventDate", "")}
-              className="text-[10px] text-rose-800 hover:underline font-semibold"
+              className="text-[10px] text-rose-800 hover:underline font-semibold cursor-pointer"
             >
               Reset
             </button>
           )}
         </div>
 
-        <DatePicker
-          value={selectedEventDate}
-          onChange={(val) => updateParam("eventDate", val)}
-          minDate={tomorrow}
-          placeholder="Select wedding date"
-          className="w-full text-xs"
-        />
+        {/* Date Trigger Card that opens unclipped Calendar Modal */}
+        <button
+          type="button"
+          onClick={openCalendarModal}
+          className={`w-full flex items-center justify-between gap-2.5 rounded-2xl px-3.5 py-2.5 text-xs transition-all border cursor-pointer ${
+            selectedEventDate
+              ? "border-rose-300 bg-rose-50/90 text-rose-950 font-bold shadow-2xs"
+              : "border-stone-200/90 bg-stone-50/90 text-stone-700 hover:border-rose-200 hover:bg-white"
+          }`}
+          aria-label="Select event date"
+        >
+          <div className="flex items-center gap-2.5 truncate">
+            <CalendarIcon size={16} className="shrink-0 text-rose-700" />
+            <span className="truncate">
+              {selectedEventDate ? formatDisplayDate(selectedEventDate) : "Select wedding date"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {selectedEventDate && (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateParam("eventDate", "");
+                }}
+                className="p-1 rounded-md text-stone-400 hover:text-rose-700 hover:bg-rose-100 transition-colors"
+                title="Clear date"
+              >
+                <X size={13} />
+              </span>
+            )}
+            <ChevronDown size={14} className="text-stone-400" />
+          </div>
+        </button>
 
         <p className="mt-1.5 text-[11px] text-stone-500 leading-tight">
-          Filters outfits free from reservation conflicts for standard 4-day rental window (delivery 2 days before event, return 1 day after).
+          Filters outfits free from reservation conflicts for 4-day rental window (delivery 2 days prior to wedding, return 1 day after).
         </p>
       </div>
 
@@ -179,7 +248,7 @@ function FilterInner({
             <button
               type="button"
               onClick={() => updatePriceTier("", "")}
-              className="text-[10px] text-rose-800 hover:underline font-semibold"
+              className="text-[10px] text-rose-800 hover:underline font-semibold cursor-pointer"
             >
               Reset
             </button>
@@ -195,7 +264,7 @@ function FilterInner({
                 key={tier.label}
                 type="button"
                 onClick={() => updatePriceTier(tier.min, tier.max)}
-                className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors ${
+                className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
                   isSelected
                     ? "bg-rose-50 font-semibold text-rose-950 border border-rose-200"
                     : "text-stone-600 hover:bg-stone-50 border border-transparent"
@@ -240,7 +309,7 @@ function FilterInner({
         </div>
       </div>
 
-      {/* 4. Sizes & Measurements Filter (TASK 10.2) */}
+      {/* 4. Sizes & Measurements Filter */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">
@@ -250,7 +319,7 @@ function FilterInner({
             <button
               type="button"
               onClick={() => updateParam("size", "")}
-              className="text-[10px] text-rose-800 hover:underline font-semibold"
+              className="text-[10px] text-rose-800 hover:underline font-semibold cursor-pointer"
             >
               Reset
             </button>
@@ -281,7 +350,7 @@ function FilterInner({
         </p>
       </div>
 
-      {/* 5. City / Location Filter (TASK 10.3) */}
+      {/* 5. City / Location Filter */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">
@@ -291,7 +360,7 @@ function FilterInner({
             <button
               type="button"
               onClick={() => updateParam("location", "")}
-              className="text-[10px] text-rose-800 hover:underline font-semibold"
+              className="text-[10px] text-rose-800 hover:underline font-semibold cursor-pointer"
             >
               Reset
             </button>
@@ -379,6 +448,17 @@ export function BrowseFilters({
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [tempDate, setTempDate] = useState<Date | null>(() => parseToDate(selectedEventDate));
+
+  // Sync tempDate when selectedEventDate changes externally
+  useEffect(() => {
+    setTempDate(parseToDate(selectedEventDate));
+  }, [selectedEventDate]);
+
+  // Tomorrow is earliest valid event date
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
   const updateParam = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -410,9 +490,10 @@ export function BrowseFilters({
   const clearAllFilters = () => {
     router.push(pathname);
     setMobileFilterOpen(false);
+    setCalendarModalOpen(false);
   };
 
-  // Count active filters (TASK 10.4)
+  // Count active filters
   let activeFilterCount = 0;
   if (selectedCategory) activeFilterCount++;
   if (selectedGender && selectedGender !== "all") activeFilterCount++;
@@ -438,6 +519,7 @@ export function BrowseFilters({
     selectedLocation,
     selectedEventDate,
     availableCities,
+    openCalendarModal: () => setCalendarModalOpen(true),
   };
 
   const showDesktop = mode === "all" || mode === "desktop";
@@ -447,7 +529,7 @@ export function BrowseFilters({
     <>
       {/* ── Desktop Left Sidebar View (Sticky on scroll) ── */}
       {showDesktop && (
-        <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start z-10">
+        <aside className="hidden lg:block w-72 shrink-0 sticky top-24 self-start z-10">
           <div className="max-h-[calc(100vh-7.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-rose-100/80 bg-white p-6 shadow-2xs no-scrollbar">
             <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-6">
               <div className="flex items-center gap-2">
@@ -562,6 +644,102 @@ export function BrowseFilters({
                 className="flex-1 rounded-xl bg-rose-900 py-3 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-rose-950 transition-colors cursor-pointer"
               >
                 Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Unclipped Event Date Selection Modal (fixed overlay: NEVER clipped by overflow) ── */}
+      {calendarModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6"
+        >
+          {/* Backdrop */}
+          <div
+            onClick={() => setCalendarModalOpen(false)}
+            className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs transition-opacity"
+            aria-hidden="true"
+          />
+
+          {/* Modal Container */}
+          <div className="relative w-full max-w-sm rounded-3xl bg-white p-5 sm:p-6 shadow-2xl z-10 animate-in fade-in-0 zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-800">
+                  <CalendarIcon size={18} />
+                </div>
+                <div>
+                  <h3 className="font-display text-base font-bold text-stone-900 leading-tight">
+                    Select Event Date
+                  </h3>
+                  <p className="text-[11px] text-stone-500 leading-tight">
+                    Check rental availability
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCalendarModalOpen(false)}
+                className="rounded-full p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition-colors cursor-pointer"
+                aria-label="Close date picker"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Calendar */}
+            <div className="flex justify-center">
+              <CustomCalendar
+                mode="single"
+                selected={tempDate}
+                onSelect={(d) => setTempDate(d)}
+                minDate={tomorrow}
+                className="border-0 shadow-none p-0 w-full"
+              />
+            </div>
+
+            {/* Rental Window Info Banner */}
+            <div className="mt-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 p-3 text-[11px] text-amber-900 leading-relaxed">
+              <p className="font-semibold text-amber-950">
+                Standard 4-Day Rental Window:
+              </p>
+              <p className="text-stone-600 mt-0.5">
+                Delivered <strong>2 days before</strong> wedding for trials &amp; returned <strong>1 day after</strong> event.
+              </p>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="mt-5 pt-3 border-t border-stone-100 flex items-center gap-2.5">
+              {tempDate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempDate(null);
+                    updateParam("eventDate", "");
+                    setCalendarModalOpen(false);
+                  }}
+                  className="flex-1 rounded-xl border border-stone-200 py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer"
+                >
+                  Clear Date
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={!tempDate}
+                onClick={() => {
+                  if (tempDate) {
+                    updateParam("eventDate", toISODateString(tempDate));
+                  }
+                  setCalendarModalOpen(false);
+                }}
+                className="flex-1 rounded-xl bg-rose-900 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-rose-950 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Apply Date Filter
               </button>
             </div>
           </div>

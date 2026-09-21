@@ -10,14 +10,7 @@ import { createClient } from "@/lib/supabase/server";
  *  1. Checks for an `error` param first (user denied access, etc.).
  *  2. Exchanges the code for a Supabase session using the server-side client.
  *  3. On success, redirects to `next` param (if provided and safe) or /account.
- *  4. On failure, redirects to /auth/error.
- *
- * Security:
- * - The access/refresh tokens are stored in httpOnly cookies by Supabase —
- *   they are NEVER included in the redirect URL.
- * - We call createClient() (server-side) so cookie-writing is server-controlled.
- * - The `next` param is validated to only allow internal paths (must start with /)
- *   to prevent open redirect attacks.
+ *  4. On failure, redirects to /auth/error with error description.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -28,9 +21,8 @@ export async function GET(request: NextRequest) {
   const origin = host ? `${proto}://${host}` : new URL(request.url).origin;
 
   const code = searchParams.get("code");
-  // Supabase/OAuth providers send an `error` param when the user denies access
-  // or something goes wrong on the provider's side.
   const oauthError = searchParams.get("error");
+  const oauthErrorDesc = searchParams.get("error_description");
 
   // Optional next redirect — validated to be a relative internal path only.
   const nextParam = searchParams.get("next");
@@ -40,9 +32,11 @@ export async function GET(request: NextRequest) {
       : "/account";
 
   if (oauthError) {
-    // Do not reflect the OAuth error string into the URL to avoid
-    // information leakage; just show the generic error page.
-    return NextResponse.redirect(`${origin}/auth/error`);
+    console.error("[AuthCallback] OAuth error from provider:", oauthError, oauthErrorDesc);
+    const errMessage = oauthErrorDesc || oauthError;
+    return NextResponse.redirect(
+      `${origin}/auth/error?message=${encodeURIComponent(errMessage)}`
+    );
   }
 
   if (code) {
@@ -50,12 +44,19 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Session established — handle_new_user() trigger has created/confirmed
-      // the profiles row. Redirect to the requested page or /account.
+      // Session established successfully
       return NextResponse.redirect(`${origin}${safeNext}`);
     }
+
+    console.error("[AuthCallback] exchangeCodeForSession failed:", error.message);
+    return NextResponse.redirect(
+      `${origin}/auth/error?message=${encodeURIComponent(error.message)}`
+    );
   }
 
-  // No code present, or code exchange failed — redirect to error page.
-  return NextResponse.redirect(`${origin}/auth/error`);
+  // No code present — redirect to error page
+  console.error("[AuthCallback] No authorization code received in callback URL.");
+  return NextResponse.redirect(
+    `${origin}/auth/error?message=${encodeURIComponent("No authorization code received from provider.")}`
+  );
 }
