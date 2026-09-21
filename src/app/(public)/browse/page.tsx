@@ -7,10 +7,11 @@ import { BrowseSort } from "@/components/browse/BrowseSort";
 import { BrowseSearchBar } from "@/components/browse/BrowseSearchBar";
 import { CategoryChips } from "@/components/browse/CategoryChips";
 import { OutfitCard, OutfitCardData } from "@/components/browse/OutfitCard";
+import { ActiveFilterBadges } from "@/components/browse/ActiveFilterBadges";
 
 export const metadata: Metadata = {
   title: "Wedding Outfits on Rent | ShaadiRent",
-  description: "Discover wedding outfits available for rent on ShaadiRent.",
+  description: "Discover verified wedding outfits available for rent on ShaadiRent.",
 };
 
 interface BrowsePageProps {
@@ -22,6 +23,7 @@ interface BrowsePageProps {
     maxPrice?: string;
     size?: string;
     location?: string;
+    eventDate?: string;
     sort?: string;
     page?: string;
   }>;
@@ -38,6 +40,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const maxPrice = params.maxPrice || "";
   const size = params.size || "";
   const location = params.location || "";
+  const eventDate = params.eventDate || "";
   const sort = params.sort || "recommended";
   const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
 
@@ -53,7 +56,65 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const categories = rawCategories ?? [];
   const selectedCategoryObj = categories.find((c) => c.slug === category);
 
-  // 2. Build query for published & approved outfits
+  // 2. Fetch distinct published cities for location filter suggestions (TASK 10.3)
+  const { data: cityRows } = await supabase
+    .from("outfits")
+    .select("city")
+    .eq("status", "published")
+    .eq("verification_status", "approved")
+    .not("city", "is", null);
+
+  const availableCities: string[] = Array.from(
+    new Set(
+      (cityRows || [])
+        .map((r) => r.city?.trim())
+        .filter((c): c is string => Boolean(c))
+    )
+  ).sort();
+
+  // 3. Calculate date availability conflicts if eventDate is provided (TASK 10.1)
+  let unavailableOutfitIds: string[] = [];
+  if (eventDate) {
+    try {
+      const evDate = new Date(eventDate);
+      if (!isNaN(evDate.getTime())) {
+        // 4-day rental window (delivery 2 days before event, return 1 day after)
+        const delDate = new Date(evDate);
+        delDate.setDate(delDate.getDate() - 2);
+        const retDate = new Date(evDate);
+        retDate.setDate(retDate.getDate() + 1);
+
+        const delStr = delDate.toISOString().slice(0, 10);
+        const retStr = retDate.toISOString().slice(0, 10);
+
+        // A. Conflict with outfit_availability (blocked or maintenance windows)
+        const { data: blockedAvail } = await supabase
+          .from("outfit_availability")
+          .select("outfit_id")
+          .in("status", ["blocked", "maintenance"])
+          .lte("start_date", retStr)
+          .gte("end_date", delStr);
+
+        // B. Conflict with active/confirmed bookings
+        const { data: bookedOutfits } = await supabase
+          .from("bookings")
+          .select("outfit_id")
+          .not("status", "in", '("cancelled","refunded")')
+          .lte("rental_start_date", retStr)
+          .gte("rental_end_date", delStr);
+
+        const blockedIds = (blockedAvail || []).map((r) => r.outfit_id);
+        const bookedIds = (bookedOutfits || []).map((r) => r.outfit_id);
+        unavailableOutfitIds = Array.from(
+          new Set([...blockedIds, ...bookedIds])
+        );
+      }
+    } catch (err) {
+      console.error("[BrowsePage] Error calculating date conflicts:", err);
+    }
+  }
+
+  // 4. Build query for published & approved outfits
   let query = supabase
     .from("outfits")
     .select(
@@ -63,6 +124,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       slug,
       brand,
       rental_price,
+      purchase_price,
       security_deposit,
       size,
       condition,
@@ -90,6 +152,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     .eq("status", "published")
     .eq("verification_status", "approved");
 
+  // Filter out outfits with date conflicts (TASK 10.1)
+  if (unavailableOutfitIds.length > 0) {
+    query = query.not("id", "in", `(${unavailableOutfitIds.join(",")})`);
+  }
+
   // Search filter
   if (q) {
     query = query.or(
@@ -115,12 +182,21 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     query = query.lte("rental_price", Number(maxPrice));
   }
 
-  // Size filter
+  // Size filter (Single or Multi-select) (TASK 10.2)
   if (size) {
-    query = query.ilike("size", `%${size}%`);
+    const sizeList = size
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (sizeList.length === 1) {
+      query = query.ilike("size", `%${sizeList[0]}%`);
+    } else if (sizeList.length > 1) {
+      const orClauses = sizeList.map((s) => `size.ilike.%${s}%`).join(",");
+      query = query.or(orClauses);
+    }
   }
 
-  // Location filter
+  // Location filter (TASK 10.3)
   if (location) {
     query = query.or(
       `city.ilike.%${location}%,district.ilike.%${location}%,state.ilike.%${location}%`
@@ -170,7 +246,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     }
   }
 
-  // Helper to build pagination links preserving active query params
+  // Helper to build pagination links preserving all active query params (TASK 10.4)
   const createPageUrl = (pageNumber: number) => {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
@@ -180,6 +256,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     if (maxPrice) p.set("maxPrice", maxPrice);
     if (size) p.set("size", size);
     if (location) p.set("location", location);
+    if (eventDate) p.set("eventDate", eventDate);
     if (sort && sort !== "recommended") p.set("sort", sort);
     if (pageNumber > 1) p.set("page", pageNumber.toString());
     const qs = p.toString();
@@ -264,6 +341,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             selectedMaxPrice={maxPrice}
             selectedSize={size}
             selectedLocation={location}
+            selectedEventDate={eventDate}
+            availableCities={availableCities}
             searchQuery={q}
           />
 
@@ -281,6 +360,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             selectedMaxPrice={maxPrice}
             selectedSize={size}
             selectedLocation={location}
+            selectedEventDate={eventDate}
+            availableCities={availableCities}
             searchQuery={q}
           />
 
@@ -307,6 +388,18 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               <BrowseSort currentSort={sort} />
             </div>
 
+            {/* Active Filters Bar (TASK 10.4) */}
+            <ActiveFilterBadges
+              categoryName={selectedCategoryObj?.name}
+              gender={gender}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              size={size}
+              location={location}
+              eventDate={eventDate}
+              query={q}
+            />
+
             {/* Outfits Grid or Empty State */}
             {outfits.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
@@ -330,7 +423,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 </h3>
 
                 <p className="mx-auto mt-2 max-w-md text-xs sm:text-sm text-stone-500 leading-relaxed">
-                  Try changing your filters or search terms.
+                  Try adjusting or clearing your filters to see more designer wedding wear.
                 </p>
 
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -338,7 +431,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     href="/browse"
                     className="rounded-xl border border-rose-300 bg-rose-50 px-5 py-2.5 text-xs sm:text-sm font-semibold text-rose-950 hover:bg-rose-100 transition-colors"
                   >
-                    Clear Filters
+                    Clear All Filters
                   </Link>
 
                   <Link

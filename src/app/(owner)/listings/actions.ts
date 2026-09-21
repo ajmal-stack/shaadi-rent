@@ -200,9 +200,9 @@ export async function unarchiveListing(
 
 export interface UpdateListingInput {
   title: string;
-  description?: string;
-  brand?: string;
-  color?: string;
+  description?: string | null;
+  brand?: string | null;
+  color?: string | null;
   rental_price: number;
   security_deposit: number;
   condition: "like_new" | "excellent" | "good";

@@ -8,7 +8,9 @@ import {
   RotateCcw,
   Check,
   MapPin,
+  Calendar as CalendarIcon,
 } from "lucide-react";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 export interface CategoryOption {
   id: string;
@@ -25,6 +27,8 @@ interface BrowseFiltersProps {
   selectedMaxPrice?: string;
   selectedSize?: string;
   selectedLocation?: string;
+  selectedEventDate?: string;
+  availableCities?: string[];
   searchQuery?: string;
   mode?: "all" | "desktop" | "mobile";
 }
@@ -43,15 +47,17 @@ const PRICE_TIERS = [
   { label: "Above ₹15,000", min: "15000", max: "" },
 ];
 
-const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "Free Size"];
+const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "Free Size", "Custom"];
 
-const POPULAR_LOCATIONS = [
+const DEFAULT_POPULAR_LOCATIONS = [
   "Delhi NCR",
   "Mumbai",
   "Bengaluru",
   "Jaipur",
   "Hyderabad",
   "Chandigarh",
+  "Kolkata",
+  "Lucknow",
 ];
 
 interface FilterInnerProps {
@@ -64,6 +70,8 @@ interface FilterInnerProps {
   selectedMaxPrice: string;
   selectedSize: string;
   selectedLocation: string;
+  selectedEventDate: string;
+  availableCities: string[];
 }
 
 function FilterInner({
@@ -76,10 +84,36 @@ function FilterInner({
   selectedMaxPrice,
   selectedSize,
   selectedLocation,
+  selectedEventDate,
+  availableCities,
 }: FilterInnerProps) {
+  // Tomorrow is earliest valid event date for rental booking
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // Multi-size selection parser
+  const selectedSizeList = selectedSize
+    ? selectedSize.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  const toggleSize = (sz: string) => {
+    let next: string[];
+    if (selectedSizeList.includes(sz)) {
+      next = selectedSizeList.filter((s) => s !== sz);
+    } else {
+      next = [...selectedSizeList, sz];
+    }
+    updateParam("size", next.join(","));
+  };
+
+  // Combine default hub cities with any dynamic cities from DB
+  const combinedCities = Array.from(
+    new Set([...DEFAULT_POPULAR_LOCATIONS, ...availableCities])
+  ).slice(0, 10);
+
   return (
     <div className="space-y-6">
-      {/* 1. Gender Selection */}
+      {/* 1. Wearer / Gender Selection */}
       <div>
         <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">
           Wearer / Gender
@@ -105,7 +139,37 @@ function FilterInner({
         </div>
       </div>
 
-      {/* 2. Rental Price Range */}
+      {/* 2. Available on Date Filter (TASK 10.1) */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">
+            Available on Event Date
+          </label>
+          {selectedEventDate && (
+            <button
+              type="button"
+              onClick={() => updateParam("eventDate", "")}
+              className="text-[10px] text-rose-800 hover:underline font-semibold"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        <DatePicker
+          value={selectedEventDate}
+          onChange={(val) => updateParam("eventDate", val)}
+          minDate={tomorrow}
+          placeholder="Select wedding date"
+          className="w-full text-xs"
+        />
+
+        <p className="mt-1.5 text-[11px] text-stone-500 leading-tight">
+          Filters outfits free from reservation conflicts for standard 4-day rental window (delivery 2 days before event, return 1 day after).
+        </p>
+      </div>
+
+      {/* 3. Rental Price Range */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">
@@ -176,13 +240,13 @@ function FilterInner({
         </div>
       </div>
 
-      {/* 3. Sizes Filter */}
+      {/* 4. Sizes & Measurements Filter (TASK 10.2) */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">
-            Size
+            Size &amp; Fit {selectedSizeList.length > 0 && `(${selectedSizeList.length})`}
           </label>
-          {selectedSize && (
+          {selectedSizeList.length > 0 && (
             <button
               type="button"
               onClick={() => updateParam("size", "")}
@@ -195,13 +259,13 @@ function FilterInner({
 
         <div className="flex flex-wrap gap-1.5">
           {SIZES.map((sz) => {
-            const isSelected = selectedSize === sz;
+            const isSelected = selectedSizeList.includes(sz);
             return (
               <button
                 key={sz}
                 type="button"
-                onClick={() => updateParam("size", isSelected ? "" : sz)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all border ${
+                onClick={() => toggleSize(sz)}
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all border cursor-pointer ${
                   isSelected
                     ? "border-rose-800 bg-rose-900 text-white shadow-2xs"
                     : "border-stone-200 bg-white text-stone-700 hover:border-stone-300"
@@ -212,9 +276,12 @@ function FilterInner({
             );
           })}
         </div>
+        <p className="mt-1.5 text-[11px] text-stone-400">
+          Select one or multiple sizes. Free size fits most with complimentary alteration.
+        </p>
       </div>
 
-      {/* 4. Location Filter */}
+      {/* 5. City / Location Filter (TASK 10.3) */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">
@@ -231,17 +298,42 @@ function FilterInner({
           )}
         </div>
 
+        {/* Custom Location Search Input */}
+        <div className="relative mb-2.5">
+          <MapPin
+            size={13}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none"
+          />
+          <input
+            type="text"
+            placeholder="Search city, district or state..."
+            value={selectedLocation}
+            onChange={(e) => updateParam("location", e.target.value)}
+            className="w-full rounded-xl border border-stone-200 pl-8 pr-3 py-1.5 text-xs text-stone-800 placeholder:text-stone-400 focus:border-rose-600 focus:outline-none"
+          />
+          {selectedLocation && (
+            <button
+              type="button"
+              onClick={() => updateParam("location", "")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Popular Hub Cities Quick Chips */}
         <div className="flex flex-wrap gap-1.5">
-          {POPULAR_LOCATIONS.map((loc) => {
+          {combinedCities.map((loc) => {
             const isSelected = selectedLocation.toLowerCase() === loc.toLowerCase();
             return (
               <button
                 key={loc}
                 type="button"
                 onClick={() => updateParam("location", isSelected ? "" : loc)}
-                className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-medium transition-all border ${
+                className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-medium transition-all border cursor-pointer ${
                   isSelected
-                    ? "border-rose-800 bg-rose-50 text-rose-900 font-semibold"
+                    ? "border-rose-800 bg-rose-50 text-rose-900 font-semibold shadow-2xs"
                     : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
                 }`}
               >
@@ -253,13 +345,13 @@ function FilterInner({
         </div>
       </div>
 
-      {/* 5. Clear All Filters CTA */}
+      {/* 6. Clear All Filters CTA */}
       {hasActiveFilters && (
         <div className="pt-2 border-t border-stone-100">
           <button
             type="button"
             onClick={clearAllFilters}
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-stone-200 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-50 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-stone-200 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer"
           >
             <RotateCcw size={13} />
             <span>Clear All Filters</span>
@@ -277,6 +369,8 @@ export function BrowseFilters({
   selectedMaxPrice = "",
   selectedSize = "",
   selectedLocation = "",
+  selectedEventDate = "",
+  availableCities = [],
   searchQuery = "",
   mode = "all",
 }: BrowseFiltersProps) {
@@ -318,13 +412,17 @@ export function BrowseFilters({
     setMobileFilterOpen(false);
   };
 
-  // Count active filters (excluding default values)
+  // Count active filters (TASK 10.4)
   let activeFilterCount = 0;
   if (selectedCategory) activeFilterCount++;
   if (selectedGender && selectedGender !== "all") activeFilterCount++;
   if (selectedMinPrice || selectedMaxPrice) activeFilterCount++;
-  if (selectedSize) activeFilterCount++;
+  if (selectedSize) {
+    const sizeCount = selectedSize.split(",").map((s) => s.trim()).filter(Boolean).length;
+    activeFilterCount += sizeCount;
+  }
   if (selectedLocation) activeFilterCount++;
+  if (selectedEventDate) activeFilterCount++;
 
   const hasActiveFilters = activeFilterCount > 0 || Boolean(searchQuery);
 
@@ -338,6 +436,8 @@ export function BrowseFilters({
     selectedMaxPrice,
     selectedSize,
     selectedLocation,
+    selectedEventDate,
+    availableCities,
   };
 
   const showDesktop = mode === "all" || mode === "desktop";
@@ -345,7 +445,7 @@ export function BrowseFilters({
 
   return (
     <>
-      {/* ── Desktop Left Sidebar View (Strictly sticky on scroll) ── */}
+      {/* ── Desktop Left Sidebar View (Sticky on scroll) ── */}
       {showDesktop && (
         <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start z-10">
           <div className="max-h-[calc(100vh-7.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-rose-100/80 bg-white p-6 shadow-2xs no-scrollbar">
@@ -366,7 +466,7 @@ export function BrowseFilters({
                 <button
                   type="button"
                   onClick={clearAllFilters}
-                  className="text-xs text-rose-800 hover:underline font-medium"
+                  className="text-xs text-rose-800 hover:underline font-medium cursor-pointer"
                 >
                   Clear all
                 </button>
@@ -436,7 +536,7 @@ export function BrowseFilters({
               <button
                 type="button"
                 onClick={() => setMobileFilterOpen(false)}
-                className="rounded-lg p-1.5 text-stone-400 hover:text-stone-700"
+                className="rounded-lg p-1.5 text-stone-400 hover:text-stone-700 cursor-pointer"
                 aria-label="Close filters"
               >
                 <X size={20} />
@@ -451,7 +551,7 @@ export function BrowseFilters({
                 <button
                   type="button"
                   onClick={clearAllFilters}
-                  className="flex-1 rounded-xl border border-stone-200 py-3 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+                  className="flex-1 rounded-xl border border-stone-200 py-3 text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer"
                 >
                   Clear All
                 </button>
@@ -459,7 +559,7 @@ export function BrowseFilters({
               <button
                 type="button"
                 onClick={() => setMobileFilterOpen(false)}
-                className="flex-1 rounded-xl bg-rose-900 py-3 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-rose-950 transition-colors"
+                className="flex-1 rounded-xl bg-rose-900 py-3 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-rose-950 transition-colors cursor-pointer"
               >
                 Apply Filters
               </button>

@@ -595,7 +595,15 @@ function EditModal({ outfit, isSaving, onClose, onSave }: EditModalProps) {
     e.preventDefault();
     if (!title.trim()) { toast.error("Title is required."); return; }
     if (rentalPrice <= 0) { toast.error("Rental price must be greater than 0."); return; }
-    onSave({ title: title.trim(), description: description || null, brand: brand || null, color: color || null, rental_price: rentalPrice, security_deposit: securityDeposit, condition });
+    onSave({
+      title: title.trim(),
+      description: description?.trim() || null,
+      brand: brand?.trim() || null,
+      color: color?.trim() || null,
+      rental_price: rentalPrice,
+      security_deposit: securityDeposit,
+      condition,
+    });
   }
 
   return (
