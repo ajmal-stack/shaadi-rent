@@ -56,22 +56,6 @@ export default async function AdminLayout({
 
   return (
     <AdminThemeProvider>
-      {/* Immediate Anti-FOUC script to eliminate flash before React hydrates */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            try {
-              var t = localStorage.getItem('shaadi_admin_theme');
-              var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-              if (t === 'dark' || (t !== 'light' && prefersDark)) {
-                document.documentElement.classList.add('dark');
-              } else {
-                document.documentElement.classList.remove('dark');
-              }
-            } catch(e) {}
-          `,
-        }}
-      />
       <AdminSidebar
         pendingApplications={pendingCount ?? 0}
         adminName={adminName}

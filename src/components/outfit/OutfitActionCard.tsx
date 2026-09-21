@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
   Sparkles,
@@ -12,15 +13,19 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
+import { toast } from "sonner";
 import { CheckDatesModal } from "./CheckDatesModal";
 import { AvailabilityWindow } from "./OutfitAvailability";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { toggleWishlist } from "@/app/actions/wishlist";
+import { triggerWishlistFlyEffect } from "@/lib/utils/wishlistFlyAnimation";
 
 interface OutfitActionCardProps {
   outfit: {
     id: string;
     owner_id: string;
     title: string;
+    slug?: string;
     brand: string | null;
     rental_price: number;
     purchase_price: number | null;
@@ -32,15 +37,73 @@ interface OutfitActionCardProps {
     categoryName?: string;
   };
   availability?: AvailabilityWindow[] | null;
+  initialWishlisted?: boolean;
 }
 
-export function OutfitActionCard({ outfit, availability = [] }: OutfitActionCardProps) {
+export function OutfitActionCard({
+  outfit,
+  availability = [],
+  initialWishlisted = false,
+}: OutfitActionCardProps) {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(initialWishlisted);
+  const [isWishlistPending, setIsWishlistPending] = useState(false);
   const [eventDate, setEventDate] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setIsWishlisted(initialWishlisted);
+  }, [initialWishlisted]);
+
+  const handleWishlistToggle = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isWishlistPending) return;
+
+    const nextState = !isWishlisted;
+    const buttonEl = e.currentTarget;
+
+    // Optimistic state
+    setIsWishlisted(nextState);
+    setIsWishlistPending(true);
+
+    // Trigger luxury parabolic flight animation to navbar heart
+    if (nextState && buttonEl) {
+      triggerWishlistFlyEffect(buttonEl);
+    }
+
+    try {
+      const res = await toggleWishlist(outfit.id);
+      if (!res.success) {
+        setIsWishlisted(!nextState);
+
+        if (res.requireAuth) {
+          toast.info("Please sign in to save outfits to your wishlist.", {
+            action: {
+              label: "Sign in",
+              onClick: () =>
+                router.push(
+                  `/auth/login?next=${encodeURIComponent(
+                    outfit.slug ? `/outfits/${outfit.slug}` : window.location.pathname
+                  )}`
+                ),
+            },
+          });
+        } else {
+          toast.error(res.error || "Failed to update wishlist.");
+        }
+      }
+      // Note: No toast message on success per user requirement
+    } catch {
+      setIsWishlisted(!nextState);
+      toast.error("Could not update wishlist. Please try again.");
+    } finally {
+      setIsWishlistPending(false);
+    }
+  };
 
   // Tomorrow is the earliest selectable date (no past dates)
   const tomorrow = new Date();
@@ -188,20 +251,25 @@ export function OutfitActionCard({ outfit, availability = [] }: OutfitActionCard
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setIsWishlisted(!isWishlisted)}
-              aria-label="Wishlist"
-              className="rounded-full p-2 text-stone-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+              onClick={handleWishlistToggle}
+              disabled={isWishlistPending}
+              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              className="rounded-full p-2 text-stone-500 hover:bg-rose-50 hover:text-rose-700 transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer disabled:opacity-50"
             >
               <Heart
-                size={18}
-                className={isWishlisted ? "fill-rose-600 text-rose-600" : ""}
+                size={20}
+                className={`transition-colors duration-200 ${
+                  isWishlisted
+                    ? "fill-rose-600 text-rose-600"
+                    : "text-stone-600 hover:text-rose-600"
+                }`}
               />
             </button>
             <button
               type="button"
               onClick={handleShare}
               aria-label="Share"
-              className="rounded-full p-2 text-stone-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+              className="rounded-full p-2 text-stone-500 hover:bg-rose-50 hover:text-rose-700 transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
             >
               <Share2 size={18} />
             </button>

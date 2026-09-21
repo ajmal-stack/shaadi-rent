@@ -154,6 +154,22 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const total = totalCount ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  // Fetch wishlisted outfit IDs for authenticated user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let wishlistedIds = new Set<string>();
+  if (user) {
+    const { data: wishRows } = await supabase
+      .from("wishlists")
+      .select("outfit_id")
+      .eq("user_id", user.id);
+    if (wishRows) {
+      wishlistedIds = new Set(wishRows.map((r) => r.outfit_id));
+    }
+  }
+
   // Helper to build pagination links preserving active query params
   const createPageUrl = (pageNumber: number) => {
     const p = new URLSearchParams();
@@ -295,7 +311,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             {outfits.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
                 {outfits.map((outfit) => (
-                  <OutfitCard key={outfit.id} outfit={outfit} />
+                  <OutfitCard
+                    key={outfit.id}
+                    outfit={outfit}
+                    initialWishlisted={wishlistedIds.has(outfit.id)}
+                  />
                 ))}
               </div>
             ) : (

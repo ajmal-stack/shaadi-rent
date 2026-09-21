@@ -6,16 +6,20 @@ interface SimilarOutfitsProps {
   outfits: OutfitCardData[];
   categoryName?: string;
   categorySlug?: string;
+  wishlistedIds?: string[];
 }
 
 export function SimilarOutfits({
   outfits,
   categoryName,
   categorySlug,
+  wishlistedIds = [],
 }: SimilarOutfitsProps) {
   if (!outfits || outfits.length === 0) {
     return null;
   }
+
+  const wishSet = new Set(wishlistedIds);
 
   return (
     <section className="mt-16 sm:mt-24 pt-12 border-t border-stone-200/80">
@@ -46,7 +50,11 @@ export function SimilarOutfits({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
         {outfits.map((item) => (
-          <OutfitCard key={item.id} outfit={item} />
+          <OutfitCard
+            key={item.id}
+            outfit={item}
+            initialWishlisted={wishSet.has(item.id)}
+          />
         ))}
       </div>
     </section>

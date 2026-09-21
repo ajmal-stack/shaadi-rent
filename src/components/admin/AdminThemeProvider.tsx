@@ -25,6 +25,47 @@ const AdminThemeContext = createContext<AdminThemeContextType | undefined>(
 
 const STORAGE_KEY = "shaadi_admin_theme";
 
+/**
+ * Temporarily disables all CSS transitions during theme switching
+ * to ensure 0ms instantaneous repaint without color fading lag.
+ */
+function disableTransitionsTemporarily() {
+  if (typeof document === "undefined") return () => {};
+
+  const css = document.createElement("style");
+  css.setAttribute("type", "text/css");
+  css.appendChild(
+    document.createTextNode(
+      `*, *::before, *::after {
+        -webkit-transition: none !important;
+        -moz-transition: none !important;
+        -o-transition: none !important;
+        -ms-transition: none !important;
+        transition: none !important;
+      }`
+    )
+  );
+  document.head.appendChild(css);
+
+  return () => {
+    // Force DOM reflow to flush styles immediately
+    (() => window.getComputedStyle(document.body))();
+
+    // Re-enable normal UI transitions (hover states, animations) on the next frame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try {
+          if (css.parentNode) {
+            document.head.removeChild(css);
+          }
+        } catch {
+          // ignore
+        }
+      });
+    });
+  };
+}
+
 export function AdminThemeProvider({
   children,
 }: {
@@ -34,7 +75,7 @@ export function AdminThemeProvider({
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedAdminTheme>("light");
   const [mounted, setMounted] = useState(false);
 
-  // Apply theme to DOM
+  // Apply theme to DOM synchronously with 0ms transition delay
   const applyTheme = useCallback((targetTheme: AdminTheme) => {
     let resolved: ResolvedAdminTheme = "light";
 
@@ -47,16 +88,18 @@ export function AdminThemeProvider({
       resolved = targetTheme;
     }
 
-    setResolvedTheme(resolved);
-
     if (typeof document !== "undefined") {
+      const enable = disableTransitionsTemporarily();
       const root = document.documentElement;
       if (resolved === "dark") {
         root.classList.add("dark");
       } else {
         root.classList.remove("dark");
       }
+      enable();
     }
+
+    setResolvedTheme(resolved);
   }, []);
 
   // Initialize theme from localStorage on client
@@ -92,6 +135,32 @@ export function AdminThemeProvider({
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [theme, applyTheme]);
 
+  const setTheme = useCallback(
+    (newTheme: AdminTheme) => {
+      // 1. Immediately apply DOM update synchronously for 0ms visual change
+      applyTheme(newTheme);
+      // 2. Update React state
+      setThemeState(newTheme);
+      // 3. Persist to localStorage
+      try {
+        localStorage.setItem(STORAGE_KEY, newTheme);
+      } catch {
+        // Ignore storage errors
+      }
+    },
+    [applyTheme]
+  );
+
+  const toggleTheme = useCallback(() => {
+    // Read directly from DOM classList to guarantee zero closure latency
+    const isCurrentlyDark =
+      typeof document !== "undefined"
+        ? document.documentElement.classList.contains("dark")
+        : resolvedTheme === "dark";
+    const next: AdminTheme = isCurrentlyDark ? "light" : "dark";
+    setTheme(next);
+  }, [resolvedTheme, setTheme]);
+
   // Global keyboard shortcut: Ctrl+Shift+D to toggle theme
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -102,25 +171,7 @@ export function AdminThemeProvider({
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  });
-
-  const setTheme = useCallback(
-    (newTheme: AdminTheme) => {
-      setThemeState(newTheme);
-      try {
-        localStorage.setItem(STORAGE_KEY, newTheme);
-      } catch {
-        // Ignore storage errors
-      }
-      applyTheme(newTheme);
-    },
-    [applyTheme]
-  );
-
-  const toggleTheme = useCallback(() => {
-    const next = resolvedTheme === "dark" ? "light" : "dark";
-    setTheme(next);
-  }, [resolvedTheme, setTheme]);
+  }, [toggleTheme]);
 
   // Clean up dark class on document when unmounting admin layout
   useEffect(() => {

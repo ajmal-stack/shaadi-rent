@@ -2,13 +2,19 @@ import type { Metadata } from "next";
 import { Settings } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { SettingsClient } from "@/components/admin/SettingsClient";
+import { getSettings } from "./actions";
 
 export const metadata: Metadata = {
   title: "Settings — Admin Console",
   description: "Platform configurations, commission rates, and security parameters.",
 };
 
-export default function AdminSettingsPage() {
+// Always fetch fresh from DB (no stale cache)
+export const dynamic = "force-dynamic";
+
+export default async function AdminSettingsPage() {
+  const settings = await getSettings();
+
   return (
     <div className="py-8 sm:py-10">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 space-y-6">
@@ -24,12 +30,12 @@ export default function AdminSettingsPage() {
                 Live Configuration
               </span>
               <span>·</span>
-              <span>Version 2.4.0</span>
+              <span>Synced from Database</span>
             </div>
           }
         />
 
-        <SettingsClient />
+        <SettingsClient initialSettings={settings} />
       </div>
     </div>
   );

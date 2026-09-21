@@ -136,6 +136,24 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
     : outfit.measurements) as unknown as MeasurementsData | null;
   const availability = (outfit.availability as unknown as AvailabilityWindow[]) ?? [];
 
+  // Fetch current user wishlist
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let wishlistedIds: string[] = [];
+  if (user) {
+    const { data: wishRows } = await supabase
+      .from("wishlists")
+      .select("outfit_id")
+      .eq("user_id", user.id);
+    if (wishRows) {
+      wishlistedIds = wishRows.map((r) => r.outfit_id);
+    }
+  }
+
+  const isOutfitWishlisted = wishlistedIds.includes(outfit.id);
+
   // Fetch similar outfits from the same category
   const { data: similarOutfits } = await supabase
     .from("outfits")
@@ -146,6 +164,7 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
       slug,
       brand,
       rental_price,
+      purchase_price,
       security_deposit,
       size,
       condition,
@@ -300,6 +319,7 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
                 id: outfit.id,
                 owner_id: outfit.owner_id,
                 title: outfit.title,
+                slug: outfit.slug,
                 brand: outfit.brand,
                 rental_price: outfit.rental_price,
                 purchase_price: outfit.purchase_price,
@@ -311,6 +331,7 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
                 categoryName: category?.name,
               }}
               availability={availability}
+              initialWishlisted={isOutfitWishlisted}
             />
           </div>
         </div>
@@ -320,6 +341,7 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
           outfits={(similarOutfits as unknown as OutfitCardData[]) ?? []}
           categoryName={category?.name}
           categorySlug={category?.slug}
+          wishlistedIds={wishlistedIds}
         />
       </div>
     </div>

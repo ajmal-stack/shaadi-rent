@@ -3,8 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { ShieldCheck, MapPin, Heart } from "lucide-react";
+import { toast } from "sonner";
 import { getOutfitImageUrl } from "@/lib/utils/image";
+import { toggleWishlist } from "@/app/actions/wishlist";
+import { triggerWishlistFlyEffect } from "@/lib/utils/wishlistFlyAnimation";
 
 export interface OutfitCardData {
   id: string;
@@ -13,6 +17,7 @@ export interface OutfitCardData {
   brand: string | null;
   rental_price: number;
   security_deposit: number;
+  purchase_price?: number | null;
   size: string | null;
   condition: string;
   city: string | null;
@@ -35,10 +40,18 @@ export interface OutfitCardData {
 
 interface OutfitCardProps {
   outfit: OutfitCardData;
+  initialWishlisted?: boolean;
+  onWishlistChange?: (outfitId: string, isSaved: boolean) => void;
 }
 
-export function OutfitCard({ outfit }: OutfitCardProps) {
-  const [isWishlisted, setIsWishlisted] = useState(false);
+export function OutfitCard({
+  outfit,
+  initialWishlisted = false,
+  onWishlistChange,
+}: OutfitCardProps) {
+  const router = useRouter();
+  const [isWishlisted, setIsWishlisted] = useState(initialWishlisted);
+  const [isPending, setIsPending] = useState(false);
 
   // Sort images by sort_order and pick the first one as primary
   const sortedImages = outfit.images
@@ -51,12 +64,64 @@ export function OutfitCard({ outfit }: OutfitCardProps) {
     ? `+ ₹${outfit.security_deposit.toLocaleString("en-IN")} deposit`
     : "Zero deposit";
 
+  const savingsPercent =
+    outfit.purchase_price && outfit.purchase_price > outfit.rental_price
+      ? Math.round(
+          ((outfit.purchase_price - outfit.rental_price) /
+            outfit.purchase_price) *
+            100
+        )
+      : 0;
+
   const locationText = [outfit.city, outfit.state].filter(Boolean).join(", ");
 
-  const handleWishlistToggle = (e: React.MouseEvent) => {
+  const handleWishlistToggle = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsWishlisted(!isWishlisted);
+    if (isPending) return;
+
+    const nextState = !isWishlisted;
+    const buttonEl = e.currentTarget;
+
+    // Optimistic UI update
+    setIsWishlisted(nextState);
+    onWishlistChange?.(outfit.id, nextState);
+    setIsPending(true);
+
+    // Launch glowing heart flight animation to navbar when wishlisting
+    if (nextState && buttonEl) {
+      triggerWishlistFlyEffect(buttonEl);
+    }
+
+    try {
+      const res = await toggleWishlist(outfit.id);
+      if (!res.success) {
+        // Revert optimistic update
+        setIsWishlisted(!nextState);
+        onWishlistChange?.(outfit.id, !nextState);
+
+        if (res.requireAuth) {
+          toast.info("Please sign in to save outfits to your wishlist.", {
+            action: {
+              label: "Sign in",
+              onClick: () =>
+                router.push(
+                  `/auth/login?next=${encodeURIComponent(`/outfits/${outfit.slug}`)}`
+                ),
+            },
+          });
+        } else {
+          toast.error(res.error || "Failed to update wishlist.");
+        }
+        return;
+      }
+    } catch {
+      setIsWishlisted(!nextState);
+      onWishlistChange?.(outfit.id, !nextState);
+      toast.error("Could not update wishlist. Please try again.");
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -76,22 +141,27 @@ export function OutfitCard({ outfit }: OutfitCardProps) {
 
         {/* Top Floating Badges */}
         <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3 flex items-center justify-between pointer-events-none">
-          {/* Verified / Approved Indicator */}
-          {outfit.verification_status === "approved" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-800/90 px-2.5 py-0.5 sm:py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs backdrop-blur-sm">
-              <ShieldCheck size={12} className="text-emerald-300" />
-              Verified
-            </span>
-          ) : (
-            <span />
-          )}
+          {/* Verified / Approved Indicator or Savings Badge */}
+          <div className="flex items-center gap-1.5">
+            {outfit.verification_status === "approved" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-800/90 px-2.5 py-0.5 sm:py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs backdrop-blur-sm">
+                <ShieldCheck size={12} className="text-emerald-300" />
+                Verified
+              </span>
+            )}
+            {savingsPercent > 0 && (
+              <span className="rounded-full bg-rose-700/90 px-2 py-0.5 sm:py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs backdrop-blur-sm">
+                Save {savingsPercent}%
+              </span>
+            )}
+          </div>
 
           {/* Wishlist Heart Button */}
           <button
             type="button"
             onClick={handleWishlistToggle}
             aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-            className="pointer-events-auto flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white/90 text-stone-700 backdrop-blur-sm shadow-xs transition-transform active:scale-90 hover:scale-110 hover:text-rose-700"
+            className="pointer-events-auto flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white/90 text-stone-700 backdrop-blur-sm shadow-xs transition-transform active:scale-90 hover:scale-110 hover:text-rose-700 cursor-pointer"
           >
             <Heart
               size={16}
@@ -139,13 +209,19 @@ export function OutfitCard({ outfit }: OutfitCardProps) {
         {/* Pricing & CTA */}
         <div className="border-t border-stone-100 pt-3 flex items-center justify-between gap-2">
           <div>
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-baseline gap-1.5">
               <span className="text-base sm:text-lg font-extrabold text-stone-950">
                 ₹{outfit.rental_price.toLocaleString("en-IN")}
               </span>
-              <span className="text-[11px] text-stone-500 font-medium">
-                per rental
-              </span>
+              {outfit.purchase_price && outfit.purchase_price > outfit.rental_price ? (
+                <span className="text-xs text-stone-400 line-through">
+                  ₹{outfit.purchase_price.toLocaleString("en-IN")}
+                </span>
+              ) : (
+                <span className="text-[11px] text-stone-500 font-medium">
+                  per rental
+                </span>
+              )}
             </div>
             <p className="text-[10px] text-stone-400 font-medium mt-0.5">
               {formattedDeposit}

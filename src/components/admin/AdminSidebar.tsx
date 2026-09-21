@@ -184,10 +184,9 @@ function NavItemRow({
       className={`
         group relative flex items-center gap-3.5 rounded-xl px-3 py-2.5 text-xs font-medium
         transition-all duration-200 select-none
-        ${
-          isActive
-            ? "bg-rose-50 dark:bg-rose-950/40 text-rose-950 dark:text-rose-200 font-semibold shadow-2xs ring-1 ring-rose-200/80 dark:ring-rose-800/60"
-            : "text-stone-600 dark:text-stone-400 hover:bg-stone-100/80 dark:hover:bg-stone-800/80 hover:text-stone-950 dark:hover:text-stone-100"
+        ${isActive
+          ? "bg-rose-50 dark:bg-rose-950/40 text-rose-950 dark:text-rose-200 font-semibold shadow-2xs ring-1 ring-rose-200/80 dark:ring-rose-800/60"
+          : "text-stone-600 dark:text-stone-400 hover:bg-stone-100/80 dark:hover:bg-stone-800/80 hover:text-stone-950 dark:hover:text-stone-100"
         }
         ${collapsed ? "justify-center px-2" : ""}
       `}
@@ -200,11 +199,10 @@ function NavItemRow({
       {/* Icon with active highlight */}
       <Icon
         size={18}
-        className={`shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-          isActive
+        className={`shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive
             ? "text-rose-700 dark:text-rose-400"
             : "text-stone-400 dark:text-stone-500 group-hover:text-stone-700 dark:group-hover:text-stone-300"
-        }`}
+          }`}
       />
 
       {/* Expanded Label */}
@@ -334,15 +332,13 @@ export function AdminSidebar({
         {/* Top Header / Branding */}
         <div className="flex flex-col shrink-0">
           <div
-            className={`flex items-center gap-3 px-4 py-4.5 border-b border-stone-200/80 dark:border-stone-800 ${
-              isCollapsed ? "justify-center px-2" : "justify-between"
-            }`}
+            className={`flex items-center gap-3 px-4 py-4.5 border-b border-stone-200/80 dark:border-stone-800 ${isCollapsed ? "justify-center px-2" : "justify-between"
+              }`}
           >
             <Link
               href="/admin"
-              className={`flex items-center gap-3 group transition-opacity hover:opacity-90 ${
-                isCollapsed ? "justify-center" : ""
-              }`}
+              className={`flex items-center gap-3 group transition-opacity hover:opacity-90 ${isCollapsed ? "justify-center" : ""
+                }`}
             >
               {/* Brand Ring Emblem */}
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-600 via-rose-700 to-rose-900 text-lg shadow-sm shadow-rose-900/15 ring-1 ring-rose-300/40 dark:ring-rose-500/30 transition-transform group-hover:scale-105">
@@ -524,7 +520,7 @@ export function AdminSidebar({
 
   /* ── Layout Wrap ────────────────────────────────────────────── */
   return (
-    <div className="relative min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-rose-100 dark:selection:bg-rose-950 selection:text-rose-900 dark:selection:text-rose-200 transition-colors duration-200">
+    <div className="relative min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-rose-100 dark:selection:bg-rose-950 selection:text-rose-900 dark:selection:text-rose-200">
       {/* ── Mobile Sticky Topbar (< lg) ─────────────────────────── */}
       <header className="lg:hidden sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-stone-200/80 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95 px-4 backdrop-blur-md text-stone-900 dark:text-stone-100 shadow-2xs">
         {/* Left: Hamburger Button */}
@@ -612,7 +608,7 @@ export function AdminSidebar({
         `}
       >
         {/* Desktop Admin Header Bar */}
-        <header className="hidden lg:flex sticky top-0 z-20 h-16 items-center justify-between border-b border-stone-200/80 dark:border-stone-800 bg-white/85 dark:bg-stone-900/85 px-6 sm:px-8 backdrop-blur-md shadow-2xs transition-colors duration-200">
+        <header className="hidden lg:flex sticky top-0 z-20 h-16 items-center justify-between border-b border-stone-200/80 dark:border-stone-800 bg-white/85 dark:bg-stone-900/85 px-6 sm:px-8 backdrop-blur-md shadow-2xs">
           <div className="flex items-center gap-3">
             {/* Quick Toggle Button in Header */}
             <button

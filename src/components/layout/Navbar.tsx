@@ -8,6 +8,7 @@ import {
   Search,
   User,
   Calendar,
+  Heart,
   ChevronDown,
   LogOut,
   LayoutDashboard,
@@ -77,49 +78,50 @@ export function Navbar({ user }: NavbarProps) {
           {/* =========================================================================
               DESKTOP NAVBAR (Hidden on mobile, visible on md and above)
               Left: ShaadiRent | Browse Outfits | How It Works | Rent Your Outfit
-              Right: Search | My Bookings | Account/Login
+              Right: Search | My Bookings | Wishlist | Account/Login
              ========================================================================= */}
-          <div className="hidden md:flex h-18 items-center justify-between">
+          <div className="hidden md:flex h-16 lg:h-18 items-center justify-between gap-2 lg:gap-4">
             {/* ── DESKTOP LEFT ─────────────────────────────────────────────── */}
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-3 lg:gap-5 xl:gap-8 min-w-0 shrink-0">
               {/* Brand Logo */}
               <Link
                 href="/"
-                className="group flex items-center gap-2.5 focus:outline-none"
+                className="group flex items-center gap-2 lg:gap-2.5 shrink-0 focus:outline-none"
               >
                 <span
                   aria-hidden="true"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-700 via-rose-800 to-rose-950 text-base shadow-sm ring-1 ring-amber-300/40 transition-transform duration-200 group-hover:scale-105"
+                  className="flex h-8 w-8 lg:h-9 lg:w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-700 via-rose-800 to-rose-950 text-sm lg:text-base shadow-sm ring-1 ring-amber-300/40 transition-transform duration-200 group-hover:scale-105 shrink-0"
                 >
                   💍
                 </span>
-                <span className="font-display text-2xl font-bold tracking-tight text-rose-950 transition-colors group-hover:text-rose-800">
+                <span className="font-display text-xl lg:text-2xl font-bold tracking-tight text-rose-950 transition-colors group-hover:text-rose-800 shrink-0">
                   ShaadiRent
                 </span>
               </Link>
 
-              {/* Vertical divider */}
-              <span className="h-5 w-px bg-rose-200/60" aria-hidden="true" />
+              {/* Vertical divider (visible on xl and up) */}
+              <span className="hidden xl:block h-5 w-px bg-rose-200/60 shrink-0" aria-hidden="true" />
 
               {/* Desktop Nav Links */}
               <nav
                 aria-label="Main Navigation"
-                className="flex items-center gap-1.5 lg:gap-3"
+                className="flex items-center gap-1 lg:gap-2 xl:gap-3 shrink-0"
               >
                 <Link
                   href="/browse"
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`rounded-lg px-2.5 py-1.5 lg:px-3 text-xs lg:text-sm font-medium transition-colors shrink-0 ${
                     isLinkActive("/browse")
                       ? "bg-rose-50 font-semibold text-rose-900"
                       : "text-gray-600 hover:bg-rose-50/70 hover:text-rose-800"
                   }`}
                 >
-                  Browse Outfits
+                  <span className="inline lg:hidden">Browse</span>
+                  <span className="hidden lg:inline">Browse Outfits</span>
                 </Link>
 
                 <Link
                   href="/how-it-works"
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`hidden lg:inline-flex rounded-lg px-2.5 py-1.5 lg:px-3 text-xs lg:text-sm font-medium transition-colors shrink-0 ${
                     isLinkActive("/how-it-works")
                       ? "bg-rose-50 font-semibold text-rose-900"
                       : "text-gray-600 hover:bg-rose-50/70 hover:text-rose-800"
@@ -130,14 +132,15 @@ export function Navbar({ user }: NavbarProps) {
 
                 <Link
                   href={user ? "/list-your-outfit" : "/rent-your-outfit"}
-                  className={`group flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`group flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 lg:px-3 text-xs lg:text-sm font-medium transition-colors shrink-0 ${
                     isLinkActive("/rent-your-outfit") || isLinkActive("/list-your-outfit")
                       ? "bg-amber-50 font-semibold text-amber-950"
                       : "text-gray-700 hover:bg-rose-50/70 hover:text-rose-900"
                   }`}
                 >
-                  <span>Rent Your Outfit</span>
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900 transition-transform group-hover:scale-105">
+                  <span className="inline xl:hidden">Rent & Earn</span>
+                  <span className="hidden xl:inline">Rent Your Outfit</span>
+                  <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] lg:text-[10px] font-semibold text-amber-900 transition-transform group-hover:scale-105">
                     Earn
                   </span>
                 </Link>
@@ -145,17 +148,20 @@ export function Navbar({ user }: NavbarProps) {
             </div>
 
             {/* ── DESKTOP RIGHT ────────────────────────────────────────────── */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 lg:gap-2.5 xl:gap-3 shrink-0">
               {/* 1. Search Trigger */}
               <button
                 type="button"
                 onClick={() => setIsSearchOpen(true)}
                 aria-label="Open search dialog"
-                className="flex h-9 items-center gap-2 rounded-full border border-gray-200 bg-gray-50/80 px-3.5 text-xs text-gray-500 shadow-xs transition-all hover:border-rose-300 hover:bg-white hover:text-gray-800 hover:shadow-sm"
+                className="flex h-9 items-center gap-2 rounded-full border border-gray-200 bg-gray-50/80 px-2.5 lg:px-3.5 text-xs text-gray-500 shadow-xs transition-all hover:border-rose-300 hover:bg-white hover:text-gray-800 hover:shadow-sm shrink-0 cursor-pointer"
               >
-                <Search size={15} className="text-rose-700" />
-                <span className="pr-1 text-gray-500 font-normal">Search outfits...</span>
-                <kbd className="hidden sm:inline-flex rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
+                <Search size={15} className="text-rose-700 shrink-0" />
+                <span className="hidden lg:inline pr-1 text-gray-500 font-normal">
+                  <span className="inline xl:hidden">Search...</span>
+                  <span className="hidden xl:inline">Search outfits...</span>
+                </span>
+                <kbd className="hidden xl:inline-flex rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
                   ⌘K
                 </kbd>
               </button>
@@ -163,23 +169,49 @@ export function Navbar({ user }: NavbarProps) {
               {/* 2. My Bookings */}
               <Link
                 href={user ? "/bookings" : "/auth/login?next=/bookings"}
-                className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                title="My Bookings"
+                className={`flex items-center gap-1.5 rounded-xl p-2 lg:px-2.5 lg:py-2 xl:px-3 text-xs lg:text-sm font-medium transition-colors shrink-0 ${
                   isLinkActive("/bookings")
                     ? "bg-rose-50 font-semibold text-rose-900"
                     : "text-gray-700 hover:bg-rose-50/70 hover:text-rose-800"
                 }`}
               >
                 <Calendar size={16} className="text-rose-700 shrink-0" />
-                <span>My Bookings</span>
+                <span className="hidden lg:inline">
+                  <span className="inline xl:hidden">Bookings</span>
+                  <span className="hidden xl:inline">My Bookings</span>
+                </span>
+              </Link>
+
+              {/* 2.5. Wishlist */}
+              <Link
+                href={user ? "/wishlist" : "/auth/login?next=/wishlist"}
+                title="Saved Wishlist"
+                data-wishlist-target="desktop"
+                className={`flex items-center gap-1.5 rounded-xl p-2 lg:px-2.5 lg:py-2 xl:px-3 text-xs lg:text-sm font-medium transition-colors shrink-0 ${
+                  isLinkActive("/wishlist")
+                    ? "bg-rose-50 font-semibold text-rose-900"
+                    : "text-gray-700 hover:bg-rose-50/70 hover:text-rose-800"
+                }`}
+              >
+                <Heart
+                  size={16}
+                  className={`nav-wishlist-icon shrink-0 transition-transform ${
+                    isLinkActive("/wishlist")
+                      ? "fill-rose-700 text-rose-700"
+                      : "text-rose-700"
+                  }`}
+                />
+                <span className="hidden lg:inline">Wishlist</span>
               </Link>
 
               {/* 3. Account / Login */}
               {user ? (
-                <div className="relative" ref={accountMenuRef}>
+                <div className="relative shrink-0" ref={accountMenuRef}>
                   <button
                     type="button"
                     onClick={() => setIsAccountMenuOpen((prev) => !prev)}
-                    className="flex items-center gap-2 rounded-full border border-rose-200/80 bg-rose-50/50 py-1 pl-1 pr-2.5 text-sm font-medium text-gray-800 transition-all hover:border-rose-300 hover:bg-rose-100/60 focus:outline-none"
+                    className="flex items-center gap-1.5 lg:gap-2 rounded-full border border-rose-200/80 bg-rose-50/50 py-1 pl-1 pr-1.5 lg:pr-2.5 text-xs lg:text-sm font-medium text-gray-800 transition-all hover:border-rose-300 hover:bg-rose-100/60 focus:outline-none shrink-0 cursor-pointer"
                     aria-expanded={isAccountMenuOpen}
                     aria-label="User account menu"
                   >
@@ -189,19 +221,19 @@ export function Navbar({ user }: NavbarProps) {
                         alt={user.name}
                         width={28}
                         height={28}
-                        className="rounded-full ring-1 ring-rose-300 object-cover"
+                        className="rounded-full ring-1 ring-rose-300 object-cover shrink-0"
                       />
                     ) : (
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-700 text-xs font-bold text-white shadow-xs">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-700 text-xs font-bold text-white shadow-xs shrink-0">
                         {initials}
                       </div>
                     )}
-                    <span className="max-w-[100px] truncate text-xs font-medium text-gray-700">
+                    <span className="hidden xl:inline max-w-[90px] truncate text-xs font-medium text-gray-700">
                       {user.name.split(" ")[0]}
                     </span>
                     <ChevronDown
                       size={14}
-                      className={`text-gray-500 transition-transform duration-150 ${
+                      className={`text-gray-500 transition-transform duration-150 shrink-0 ${
                         isAccountMenuOpen ? "rotate-180" : ""
                       }`}
                     />
@@ -238,6 +270,15 @@ export function Navbar({ user }: NavbarProps) {
                           <span>My Bookings</span>
                         </Link>
 
+                        <Link
+                          href="/wishlist"
+                          onClick={() => setIsAccountMenuOpen(false)}
+                          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-900 transition-colors"
+                        >
+                          <Heart size={15} className="text-rose-700" />
+                          <span>Saved Wishlist</span>
+                        </Link>
+
                         {user.role === "owner" && (
                           <Link
                             href="/dashboard"
@@ -265,7 +306,7 @@ export function Navbar({ user }: NavbarProps) {
                         <form action={signOut}>
                           <button
                             type="submit"
-                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                           >
                             <LogOut size={15} />
                             <span>Sign Out</span>
@@ -278,10 +319,11 @@ export function Navbar({ user }: NavbarProps) {
               ) : (
                 <Link
                   href="/auth/login"
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-700 to-rose-900 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:from-rose-800 hover:to-rose-950 hover:shadow active:scale-[0.98]"
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-700 to-rose-900 px-3 py-1.5 lg:px-4 lg:py-2 text-xs lg:text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:from-rose-800 hover:to-rose-950 hover:shadow active:scale-[0.98] shrink-0"
                 >
-                  <User size={15} />
-                  <span>Account / Login</span>
+                  <User size={15} className="shrink-0" />
+                  <span className="inline lg:hidden">Sign In</span>
+                  <span className="hidden lg:inline">Account / Login</span>
                 </Link>
               )}
             </div>
@@ -289,53 +331,75 @@ export function Navbar({ user }: NavbarProps) {
 
           {/* =========================================================================
               MOBILE TOP HEADER (Visible on mobile screens < md)
-              Left: Menu Button + ShaadiRent Logo | Right: Search + Profile / Login
+              Left: Menu Button + ShaadiRent Logo | Right: Search + Wishlist + Profile / Login
              ========================================================================= */}
-          <div className="flex md:hidden h-14 items-center justify-between">
+          <div className="flex md:hidden h-14 items-center justify-between gap-1">
             {/* Left: Hamburger Menu Button + Logo */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
                 aria-label="Open mobile navigation menu"
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-900 transition-colors focus:outline-none active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-900 transition-colors focus:outline-none active:scale-95 shrink-0"
               >
                 <Menu size={22} strokeWidth={2.2} />
               </button>
 
               <Link
                 href="/"
-                className="flex items-center gap-2 focus:outline-none"
+                className="flex items-center gap-1.5 sm:gap-2 focus:outline-none shrink-0"
               >
                 <span
                   aria-hidden="true"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-rose-700 to-rose-900 text-sm shadow-xs"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-rose-700 to-rose-900 text-sm shadow-xs shrink-0"
                 >
                   💍
                 </span>
-                <span className="font-display text-xl font-bold tracking-tight text-rose-950">
+                <span className="font-display text-lg sm:text-xl font-bold tracking-tight text-rose-950 shrink-0">
                   ShaadiRent
                 </span>
               </Link>
             </div>
 
-            {/* Right Action Icons: 🔍 Search + 👤 Profile / Account Badge */}
-            <div className="flex items-center gap-1.5">
+            {/* Right Action Icons: 🔍 Search + ❤️ Wishlist + 👤 Profile / Account Badge */}
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* Search Trigger */}
               <button
                 type="button"
                 onClick={() => setIsSearchOpen(true)}
                 aria-label="Search outfits"
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-800 transition-colors focus:outline-none active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-800 transition-colors focus:outline-none active:scale-95 shrink-0"
               >
-                <Search size={20} strokeWidth={2.2} />
+                <Search size={19} strokeWidth={2.2} />
               </button>
+
+              {/* Wishlist Link */}
+              <Link
+                href={user ? "/wishlist" : "/auth/login?next=/wishlist"}
+                aria-label="Saved Wishlist"
+                data-wishlist-target="mobile"
+                className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors active:scale-95 shrink-0 ${
+                  isLinkActive("/wishlist")
+                    ? "bg-rose-100 text-rose-800"
+                    : "text-gray-700 hover:bg-rose-50 hover:text-rose-800"
+                }`}
+              >
+                <Heart
+                  size={19}
+                  strokeWidth={2.2}
+                  className={`nav-wishlist-icon transition-transform ${
+                    isLinkActive("/wishlist")
+                      ? "fill-rose-700 text-rose-700"
+                      : "text-rose-700"
+                  }`}
+                />
+              </Link>
 
               {/* User Profile Pill / Login Link */}
               <Link
                 href={user ? "/account" : "/auth/login"}
                 aria-label={user ? `My Profile (${user.name})` : "Login / Account"}
-                className="flex h-9 items-center gap-1.5 rounded-full border border-rose-200/80 bg-rose-50/70 px-2 py-1 text-xs font-semibold text-rose-950 transition-all hover:border-rose-300 hover:bg-rose-100/70 active:scale-95 shadow-2xs"
+                className="flex h-9 items-center gap-1.5 rounded-full border border-rose-200/80 bg-rose-50/70 px-2 py-1 text-xs font-semibold text-rose-950 transition-all hover:border-rose-300 hover:bg-rose-100/70 active:scale-95 shadow-2xs shrink-0"
               >
                 {user?.avatarUrl ? (
                   <Image
@@ -343,16 +407,16 @@ export function Navbar({ user }: NavbarProps) {
                     alt={user.name}
                     width={22}
                     height={22}
-                    className="rounded-full ring-1 ring-rose-400 object-cover"
+                    className="rounded-full ring-1 ring-rose-400 object-cover shrink-0"
                   />
                 ) : user ? (
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-rose-700 to-rose-900 text-[10px] font-bold text-white shadow-xs">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-rose-700 to-rose-900 text-[10px] font-bold text-white shadow-xs shrink-0">
                     {initials}
                   </div>
                 ) : (
-                  <User size={16} strokeWidth={2.2} className="text-rose-800" />
+                  <User size={16} strokeWidth={2.2} className="text-rose-800 shrink-0" />
                 )}
-                <span className="max-w-[75px] truncate text-[11px] font-semibold text-rose-950">
+                <span className="hidden min-[380px]:inline max-w-[65px] sm:max-w-[80px] truncate text-[11px] font-semibold text-rose-950">
                   {user ? user.name.split(" ")[0] : "Login"}
                 </span>
               </Link>

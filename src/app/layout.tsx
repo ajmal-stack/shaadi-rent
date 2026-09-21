@@ -22,6 +22,25 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning={true}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (window.location.pathname.startsWith('/admin')) {
+                  var t = localStorage.getItem('shaadi_admin_theme');
+                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  if (t === 'dark' || (t !== 'light' && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                }
+              } catch(e) {}
+            `,
+          }}
+        />
+      </head>
       <body
         suppressHydrationWarning={true}
         className="min-h-screen flex flex-col bg-white text-gray-900 antialiased"

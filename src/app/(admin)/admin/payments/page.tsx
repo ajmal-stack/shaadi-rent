@@ -16,10 +16,12 @@ export default async function AdminPaymentsPage() {
     .from("payments")
     .select(
       `
-      id, amount, currency, status, provider, provider_payment_id, created_at,
+      id, amount, currency, status, provider, provider_payment_id, provider_order_id, metadata, created_at, updated_at,
       bookings!payments_booking_id_fkey (
-        id, booking_number, total_amount,
-        profiles!bookings_renter_id_fkey ( full_name )
+        id, booking_number, status, payment_status, rental_amount, security_deposit, total_amount,
+        rental_start_date, rental_end_date, event_date, created_at,
+        profiles!bookings_renter_id_fkey ( full_name, email, phone ),
+        outfits!bookings_outfit_id_fkey ( id, title, brand, slug )
       )
     `
     )
@@ -27,9 +29,11 @@ export default async function AdminPaymentsPage() {
 
   if (error) console.error("Failed to load payments:", error);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const payments = (data ?? []).map((p: any) => {
     const booking = p.bookings ?? p["bookings!payments_booking_id_fkey"];
     const renter = booking ? (booking.profiles ?? booking["profiles!bookings_renter_id_fkey"]) : null;
+    const outfit = booking ? (booking.outfits ?? booking["outfits!bookings_outfit_id_fkey"]) : null;
 
     return {
       id: p.id as string,
@@ -38,13 +42,37 @@ export default async function AdminPaymentsPage() {
       status: p.status,
       provider: p.provider as string,
       provider_payment_id: p.provider_payment_id as string | null,
+      provider_order_id: p.provider_order_id as string | null,
+      metadata: p.metadata,
       created_at: p.created_at as string,
+      updated_at: p.updated_at as string,
       bookings: booking
         ? {
             id: booking.id,
             booking_number: booking.booking_number,
+            status: booking.status,
+            payment_status: booking.payment_status,
+            rental_amount: booking.rental_amount,
+            security_deposit: booking.security_deposit,
             total_amount: booking.total_amount,
-            renter: renter ? { full_name: renter.full_name } : null,
+            rental_start_date: booking.rental_start_date,
+            rental_end_date: booking.rental_end_date,
+            event_date: booking.event_date,
+            created_at: booking.created_at,
+            renter: renter
+              ? {
+                  full_name: renter.full_name,
+                  email: renter.email,
+                  phone: renter.phone,
+                }
+              : null,
+            outfit: outfit
+              ? {
+                  title: outfit.title,
+                  brand: outfit.brand,
+                  slug: outfit.slug,
+                }
+              : null,
           }
         : null,
     };

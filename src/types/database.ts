@@ -660,6 +660,42 @@ export type Database = {
         ];
       };
 
+      // ── wishlists ────────────────────────────────────────────────────────────
+      wishlists: {
+        Row: {
+          id: string;
+          user_id: string;
+          outfit_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          outfit_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          outfit_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wishlists_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wishlists_outfit_id_fkey";
+            columns: ["outfit_id"];
+            referencedRelation: "outfits";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+
       // ── inspection_reports ──────────────────────────────────────────────────
       inspection_reports: {
         Row: {
@@ -869,6 +905,26 @@ export type Database = {
           },
         ];
       };
+
+      // ── platform_settings ────────────────────────────────────────────────────
+      platform_settings: {
+        Row: {
+          key: string;
+          value: Json;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          value: Json;
+          updated_at?: string;
+        };
+        Update: {
+          key?: string;
+          value?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
 
     Views: Record<string, never>;
@@ -968,6 +1024,8 @@ export type OutfitInsert = Database["public"]["Tables"]["outfits"]["Insert"];
 export type BookingInsert = Database["public"]["Tables"]["bookings"]["Insert"];
 export type ReviewInsert = Database["public"]["Tables"]["reviews"]["Insert"];
 export type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
+export type Wishlist = Database["public"]["Tables"]["wishlists"]["Row"];
+export type WishlistInsert = Database["public"]["Tables"]["wishlists"]["Insert"];
 export type OwnerApplication =
   Database["public"]["Tables"]["owner_applications"]["Row"];
 export type OwnerApplicationInsert =

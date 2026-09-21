@@ -28,11 +28,27 @@ html.dark {
   color-scheme: dark;
 }
 
+html.dark body {
+  background-color: #0c0a09;
+  color: #f5f5f4;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: #ffffff;
   color: #111827;
-  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ── Prevent lag or sluggish transitions during instant theme toggle ─────── */
+.no-theme-transition,
+.no-theme-transition *,
+.no-theme-transition *::before,
+.no-theme-transition *::after {
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  -ms-transition: none !important;
+  transition: none !important;
 }
 
 /* ── Sleek Custom Scrollbars ─────────────────────────────────────────────── */

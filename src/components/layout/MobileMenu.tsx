@@ -9,6 +9,7 @@ import {
   HelpCircle,
   PlusCircle,
   Calendar,
+  Heart,
   User,
   LogOut,
   LogIn,
@@ -246,6 +247,21 @@ export function MobileMenu({ isOpen, onClose, user }: MobileMenuProps) {
                   <Calendar size={18} />
                 </div>
                 <span className="font-medium">My Bookings</span>
+                <ChevronRight size={16} className="ml-auto text-gray-400" />
+              </Link>
+            </li>
+
+            {/* 5. My Wishlist */}
+            <li>
+              <Link
+                href={user ? "/wishlist" : "/auth/login?next=/wishlist"}
+                onClick={close}
+                className="flex items-center gap-3.5 rounded-xl px-3.5 py-3 text-gray-700 transition-all hover:bg-rose-50 hover:text-rose-900 active:scale-[0.98]"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100/70 text-rose-700">
+                  <Heart size={18} />
+                </div>
+                <span className="font-medium">My Wishlist</span>
                 <ChevronRight size={16} className="ml-auto text-gray-400" />
               </Link>
             </li>

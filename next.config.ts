@@ -29,6 +29,35 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/owner/listings",
+        destination: "/listings",
+        permanent: true,
+      },
+      {
+        source: "/owner/dashboard",
+        destination: "/dashboard",
+        permanent: true,
+      },
+      {
+        source: "/owner/requests",
+        destination: "/requests",
+        permanent: true,
+      },
+      {
+        source: "/owner/earnings",
+        destination: "/earnings",
+        permanent: true,
+      },
+      {
+        source: "/owner",
+        destination: "/dashboard",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

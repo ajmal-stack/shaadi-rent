@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import Link from "next/link";
+import { LayoutDashboard, LayoutList, CalendarCheck, Wallet } from "lucide-react";
 
 /**
  * Owner route group layout — runs before every page inside (owner)/.
@@ -46,8 +48,44 @@ export default async function OwnerLayout({
   return (
     <div className="flex flex-col min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
       <Header />
+
+      {/* Owner quick-nav strip */}
+      <div className="border-b border-stone-100 bg-white shadow-xs">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 flex items-center gap-1 overflow-x-auto">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-1.5 px-3 py-3 text-xs font-semibold text-stone-600 hover:text-rose-800 border-b-2 border-transparent hover:border-rose-400 transition-colors whitespace-nowrap"
+          >
+            <LayoutDashboard size={14} />
+            Dashboard
+          </Link>
+          <Link
+            href="/listings"
+            className="flex items-center gap-1.5 px-3 py-3 text-xs font-semibold text-stone-600 hover:text-rose-800 border-b-2 border-transparent hover:border-rose-400 transition-colors whitespace-nowrap"
+          >
+            <LayoutList size={14} />
+            My Listings
+          </Link>
+          <Link
+            href="/requests"
+            className="flex items-center gap-1.5 px-3 py-3 text-xs font-semibold text-stone-600 hover:text-rose-800 border-b-2 border-transparent hover:border-rose-400 transition-colors whitespace-nowrap"
+          >
+            <CalendarCheck size={14} />
+            Booking Requests
+          </Link>
+          <Link
+            href="/earnings"
+            className="flex items-center gap-1.5 px-3 py-3 text-xs font-semibold text-stone-600 hover:text-rose-800 border-b-2 border-transparent hover:border-rose-400 transition-colors whitespace-nowrap"
+          >
+            <Wallet size={14} />
+            Earnings
+          </Link>
+        </div>
+      </div>
+
       <main className="flex-1 flex flex-col">{children}</main>
       <Footer className="mt-auto" />
     </div>
   );
 }
+

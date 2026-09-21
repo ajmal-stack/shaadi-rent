@@ -585,7 +585,7 @@ export async function submitForVerification(
     return { error: error.message };
   }
 
-  redirect("/list-your-outfit/submitted");
+  redirect("/listings");
 }
 
 // ─── Load Outfit for Preview ──────────────────────────────────────────────────

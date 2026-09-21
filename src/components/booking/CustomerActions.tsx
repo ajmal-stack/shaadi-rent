@@ -7,11 +7,14 @@ import {
   RotateCcw,
   Loader2,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   Sparkles,
   Clock,
+  ShieldAlert,
 } from "lucide-react";
 import { updateBookingStatus } from "@/app/actions/booking";
+import { DisputeModal } from "@/components/booking/DisputeModal";
 import type { BookingStatus } from "@/types/database";
 
 interface CustomerActionsProps {
@@ -41,6 +44,7 @@ export function CustomerActions({ bookingId, status, returnDate }: CustomerActio
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isDisputeOpen, setIsDisputeOpen] = useState(false);
 
   const handleAction = (newStatus: string, successMsg: string) => {
     setError(null);
@@ -57,6 +61,30 @@ export function CustomerActions({ bookingId, status, returnDate }: CustomerActio
     });
   };
 
+  // ── "Disputed" — dedicated dispute banner ──────────────────────────────────
+  if (status === "disputed") {
+    return (
+      <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-5 space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
+            <ShieldAlert size={20} className="text-amber-700" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-amber-950">Dispute Under Active Review</p>
+              <span className="rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-extrabold text-amber-900 uppercase tracking-wide">
+                Pending Resolution
+              </span>
+            </div>
+            <p className="text-xs text-amber-900/90 mt-1 leading-relaxed">
+              You have reported an issue regarding this booking. ShaadiRent&apos;s resolution desk is actively investigating your claim. Automatic deposit settlements and payouts are paused until resolution.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── "Out for delivery" — informational banner ──────────────────────────────
   if (status === "out_for_delivery") {
     return (
@@ -68,7 +96,7 @@ export function CustomerActions({ bookingId, status, returnDate }: CustomerActio
           <div>
             <p className="font-bold text-sky-900">Your outfit is on the way! 🚚</p>
             <p className="text-xs text-sky-800 mt-1 leading-relaxed">
-              Our delivery partner is heading to your address. Keep your phone handy — they'll call before arriving.
+              Our delivery partner is heading to your address. Keep your phone handy — they&apos;ll call before arriving.
             </p>
           </div>
         </div>
@@ -90,39 +118,56 @@ export function CustomerActions({ bookingId, status, returnDate }: CustomerActio
       );
     }
     return (
-      <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 space-y-3">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-100 border border-teal-200 flex items-center justify-center shrink-0">
-            <PackageCheck size={20} className="text-teal-700" />
+      <>
+        <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-100 border border-teal-200 flex items-center justify-center shrink-0">
+              <PackageCheck size={20} className="text-teal-700" />
+            </div>
+            <div>
+              <p className="font-bold text-teal-900">Outfit Delivered to You</p>
+              <p className="text-xs text-teal-800 mt-0.5 leading-relaxed">
+                Did you receive your outfit? Confirm receipt to start your active rental and enable return scheduling.
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="font-bold text-teal-900">Outfit Delivered to You</p>
-            <p className="text-xs text-teal-800 mt-0.5 leading-relaxed">
-              Did you receive your outfit? Confirm receipt to start your active rental and enable return scheduling.
-            </p>
-          </div>
+
+          {error && (
+            <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              <AlertCircle size={14} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => handleAction("active", "Receipt confirmed! Rental is now active.")}
+            disabled={isPending}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-700 to-stone-900 py-3.5 text-sm font-semibold text-white shadow-md hover:from-teal-800 hover:to-black transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isPending ? (
+              <><Loader2 size={16} className="animate-spin" /><span>Confirming…</span></>
+            ) : (
+              <><PackageCheck size={16} /><span>Yes, I&apos;ve Received My Outfit</span></>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsDisputeOpen(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors"
+          >
+            <AlertTriangle size={14} className="text-amber-600" />
+            <span>Report an Issue with Delivery / Outfit</span>
+          </button>
         </div>
 
-        {error && (
-          <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-            <AlertCircle size={14} className="shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={() => handleAction("active", "Receipt confirmed! Rental is now active.")}
-          disabled={isPending}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-700 to-stone-900 py-3.5 text-sm font-semibold text-white shadow-md hover:from-teal-800 hover:to-black transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {isPending ? (
-            <><Loader2 size={16} className="animate-spin" /><span>Confirming…</span></>
-          ) : (
-            <><PackageCheck size={16} /><span>Yes, I&apos;ve Received My Outfit</span></>
-          )}
-        </button>
-      </div>
+        <DisputeModal
+          bookingId={bookingId}
+          isOpen={isDisputeOpen}
+          onClose={() => setIsDisputeOpen(false)}
+        />
+      </>
     );
   }
 
@@ -145,61 +190,166 @@ export function CustomerActions({ bookingId, status, returnDate }: CustomerActio
     }
 
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 space-y-3">
-        {/* Rental duration indicator */}
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
-            <Clock size={20} className={isOverdue ? "text-rose-600" : "text-emerald-700"} />
+      <>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 space-y-3">
+          {/* Rental duration indicator */}
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
+              <Clock size={20} className={isOverdue ? "text-rose-600" : "text-emerald-700"} />
+            </div>
+            <div>
+              <p className="font-bold text-emerald-900">Active Rental</p>
+              <p className={`text-xs mt-0.5 font-semibold ${isOverdue ? "text-rose-700" : isDueToday ? "text-amber-700" : "text-emerald-700"}`}>
+                {isOverdue
+                  ? `Return is overdue by ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? "s" : ""}. Please schedule pickup immediately.`
+                  : isDueToday
+                  ? `Return pickup is due TODAY (${fmtDate(returnDate)})`
+                  : `Return pickup due in ${daysLeft} day${daysLeft !== 1 ? "s" : ""} — ${fmtDate(returnDate)}`}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="font-bold text-emerald-900">Active Rental</p>
-            <p className={`text-xs mt-0.5 font-semibold ${isOverdue ? "text-rose-700" : isDueToday ? "text-amber-700" : "text-emerald-700"}`}>
-              {isOverdue
-                ? `Return is overdue by ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? "s" : ""}. Please schedule pickup immediately.`
-                : isDueToday
-                ? `Return pickup is due TODAY (${fmtDate(returnDate)})`
-                : `Return pickup due in ${daysLeft} day${daysLeft !== 1 ? "s" : ""} — ${fmtDate(returnDate)}`}
-            </p>
-          </div>
+
+          {error && (
+            <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              <AlertCircle size={14} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => handleAction("return_scheduled", "Return pickup scheduled!")}
+            disabled={isPending}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-700 to-stone-900 py-3.5 text-sm font-semibold text-white shadow-md hover:from-violet-800 hover:to-black transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isPending ? (
+              <><Loader2 size={16} className="animate-spin" /><span>Scheduling…</span></>
+            ) : (
+              <><RotateCcw size={16} /><span>Schedule Return Pickup</span></>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsDisputeOpen(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors"
+          >
+            <AlertTriangle size={14} className="text-amber-600" />
+            <span>Report a Problem / Raise Dispute</span>
+          </button>
         </div>
 
-        {error && (
-          <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-            <AlertCircle size={14} className="shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
+        <DisputeModal
+          bookingId={bookingId}
+          isOpen={isDisputeOpen}
+          onClose={() => setIsDisputeOpen(false)}
+        />
+      </>
+    );
+  }
 
-        <button
-          type="button"
-          onClick={() => handleAction("return_scheduled", "Return pickup scheduled!")}
-          disabled={isPending}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-700 to-stone-900 py-3.5 text-sm font-semibold text-white shadow-md hover:from-violet-800 hover:to-black transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {isPending ? (
-            <><Loader2 size={16} className="animate-spin" /><span>Scheduling…</span></>
-          ) : (
-            <><RotateCcw size={16} /><span>Schedule Return Pickup</span></>
-          )}
-        </button>
-      </div>
+  // ── "Return Scheduled" ───────────────────────────────────────────────────
+  if (status === "return_scheduled") {
+    return (
+      <>
+        <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center shrink-0">
+              <RotateCcw size={20} className="text-violet-700" />
+            </div>
+            <div>
+              <p className="font-bold text-violet-900">Return Pickup Scheduled</p>
+              <p className="text-xs text-violet-800 mt-1 leading-relaxed">
+                Our logistics partner is assigned for pickup. Please keep the outfit packed in its original ShaadiRent garment bag.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsDisputeOpen(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors"
+          >
+            <AlertTriangle size={14} className="text-amber-600" />
+            <span>Pickup Issue? Report a Problem</span>
+          </button>
+        </div>
+
+        <DisputeModal
+          bookingId={bookingId}
+          isOpen={isDisputeOpen}
+          onClose={() => setIsDisputeOpen(false)}
+        />
+      </>
+    );
+  }
+
+  // ── "Returned" ───────────────────────────────────────────────────────────
+  if (status === "returned") {
+    return (
+      <>
+        <div className="rounded-2xl border border-stone-200 bg-stone-50/80 p-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0">
+              <CheckCircle2 size={20} className="text-stone-700" />
+            </div>
+            <div>
+              <p className="font-bold text-stone-900">Outfit Returned</p>
+              <p className="text-xs text-stone-600 mt-1 leading-relaxed">
+                The outfit has been collected and will undergo our standard condition check before security deposit refund.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsDisputeOpen(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors"
+          >
+            <AlertTriangle size={14} className="text-amber-600" />
+            <span>Report an Issue / Raise Dispute</span>
+          </button>
+        </div>
+
+        <DisputeModal
+          bookingId={bookingId}
+          isOpen={isDisputeOpen}
+          onClose={() => setIsDisputeOpen(false)}
+        />
+      </>
     );
   }
 
   // ── "Inspection" — reassurance banner ─────────────────────────────────────
   if (status === "inspection") {
     return (
-      <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-orange-100 border border-orange-200 flex items-center justify-center shrink-0">
-          <Sparkles size={20} className="text-orange-600" />
+      <>
+        <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-100 border border-orange-200 flex items-center justify-center shrink-0">
+              <Sparkles size={20} className="text-orange-600" />
+            </div>
+            <div>
+              <p className="font-bold text-orange-900">Deposit Refund In Progress</p>
+              <p className="text-xs text-orange-800 mt-1 leading-relaxed">
+                Our team is completing the post-return inspection. Your security deposit will be refunded within 2–3 business days.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsDisputeOpen(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors"
+          >
+            <AlertTriangle size={14} className="text-amber-600" />
+            <span>Dispute an Inspection Deduction</span>
+          </button>
         </div>
-        <div>
-          <p className="font-bold text-orange-900">Deposit Refund In Progress</p>
-          <p className="text-xs text-orange-800 mt-1 leading-relaxed">
-            Our team is completing the post-return inspection. Your security deposit will be refunded within 2–3 business days.
-          </p>
-        </div>
-      </div>
+
+        <DisputeModal
+          bookingId={bookingId}
+          isOpen={isDisputeOpen}
+          onClose={() => setIsDisputeOpen(false)}
+        />
+      </>
     );
   }
 

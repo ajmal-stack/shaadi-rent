@@ -7,11 +7,12 @@ import {
   MapPin,
   Wallet,
   HelpCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { BookingTimeline } from "@/components/booking/BookingTimeline";
 import { CustomerActions } from "@/components/booking/CustomerActions";
-import type { BookingStatus, DeliveryAddress } from "@/types/database";
+import type { BookingStatus, DeliveryAddress, Dispute } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Booking Details — ShaadiRent",
@@ -89,6 +90,19 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
 
   if (error || !booking) notFound();
 
+  // Fetch dispute record for this booking if one exists
+  const { data: rawDispute } = await supabase
+    .from("disputes")
+    .select(
+      "id, reason, description, amount, status, resolution_notes, created_at, updated_at"
+    )
+    .eq("booking_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const dispute = rawDispute as Dispute | null;
+
   const outfit = booking.outfits as unknown as {
     id: string;
     title: string;
@@ -140,11 +154,89 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
 
         {/* ── Customer Action Banner ── */}
         {!isTerminal && (
-        <CustomerActions
+          <CustomerActions
             bookingId={booking.id}
             status={booking.status as BookingStatus}
             returnDate={booking.rental_end_date}
           />
+        )}
+
+        {/* ── Dispute Details Card (if dispute exists) ── */}
+        {dispute && (
+          <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0">
+                  <ShieldAlert size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900">
+                    Dispute Case #{dispute.id.slice(0, 8).toUpperCase()}
+                  </h3>
+                  <p className="text-[11px] text-stone-400">
+                    Filed on {fmtDate(dispute.created_at)}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
+                  dispute.status === "open"
+                    ? "bg-amber-50 text-amber-800 border-amber-200"
+                    : dispute.status === "under_review"
+                    ? "bg-blue-50 text-blue-800 border-blue-200"
+                    : dispute.status === "resolved"
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                    : "bg-stone-100 text-stone-700 border-stone-200"
+                }`}
+              >
+                {dispute.status === "open" && "Under Review"}
+                {dispute.status === "under_review" && "Investigating"}
+                {dispute.status === "resolved" && "Resolved"}
+                {dispute.status === "rejected" && "Rejected / Closed"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="rounded-xl bg-stone-50 border border-stone-100 p-3">
+                <span className="text-[10px] uppercase font-bold text-stone-400 block">Reported Issue</span>
+                <span className="font-bold text-stone-900 mt-0.5 block">{dispute.reason}</span>
+              </div>
+              {dispute.amount !== null && dispute.amount > 0 && (
+                <div className="rounded-xl bg-stone-50 border border-stone-100 p-3">
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block">Claimed Amount</span>
+                  <span className="font-bold text-stone-900 mt-0.5 block">₹{dispute.amount.toLocaleString("en-IN")}</span>
+                </div>
+              )}
+            </div>
+
+            {dispute.description && (
+              <div className="rounded-xl bg-stone-50 border border-stone-100 p-3.5 space-y-1 text-xs">
+                <span className="text-[10px] uppercase font-bold text-stone-400 block">Your Explanation</span>
+                <p className="text-stone-700 leading-relaxed whitespace-pre-wrap">{dispute.description}</p>
+              </div>
+            )}
+
+            {dispute.resolution_notes && (
+              <div
+                className={`rounded-xl border p-3.5 space-y-1.5 text-xs ${
+                  dispute.status === "resolved"
+                    ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
+                    : "bg-stone-50 border-stone-200 text-stone-900"
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs">
+                  <Sparkles
+                    size={14}
+                    className={
+                      dispute.status === "resolved" ? "text-emerald-700" : "text-stone-600"
+                    }
+                  />
+                  <span>ShaadiRent Resolution Desk Decision</span>
+                </div>
+                <p className="leading-relaxed text-xs">{dispute.resolution_notes}</p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* ── Outfit Card ── */}
