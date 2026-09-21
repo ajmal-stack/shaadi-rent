@@ -42,7 +42,9 @@ let cachedCategories: CacheEntry<Array<{ id: string; name: string; slug: string;
 let cachedCities: CacheEntry<string[]> | null = null;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-async function getCategories(supabase: any) {
+async function getCategories(
+  supabase: any
+): Promise<Array<{ id: string; name: string; slug: string; gender_type: string }>> {
   const now = Date.now();
   if (cachedCategories && now < cachedCategories.expiry) {
     return cachedCategories.data;
@@ -52,12 +54,13 @@ async function getCategories(supabase: any) {
     .select("id, name, slug, gender_type")
     .eq("is_active", true)
     .order("name", { ascending: true });
-  const result = data ?? [];
+  const result: Array<{ id: string; name: string; slug: string; gender_type: string }> =
+    (data as any) ?? [];
   cachedCategories = { data: result, expiry: now + CACHE_TTL_MS };
   return result;
 }
 
-async function getAvailableCities(supabase: any) {
+async function getAvailableCities(supabase: any): Promise<string[]> {
   const now = Date.now();
   if (cachedCities && now < cachedCities.expiry) {
     return cachedCities.data;
@@ -69,13 +72,11 @@ async function getAvailableCities(supabase: any) {
     .eq("verification_status", "approved")
     .not("city", "is", null);
 
-  const result = Array.from(
-    new Set(
-      (cityRows || [])
-        .map((r: any) => r.city?.trim())
-        .filter((c: any): c is string => Boolean(c))
-    )
-  ).sort();
+  const rawCities: string[] = (cityRows || [])
+    .map((r: { city?: string | null }) => r.city?.trim() || "")
+    .filter((c: string): c is string => Boolean(c));
+
+  const result: string[] = Array.from(new Set<string>(rawCities)).sort();
   cachedCities = { data: result, expiry: now + CACHE_TTL_MS };
   return result;
 }
