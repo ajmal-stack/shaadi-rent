@@ -1,7 +1,8 @@
 "use client";
 
-import { useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export interface CategoryItem {
   id: string;
@@ -22,7 +23,8 @@ export function CategoryChips({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
+  const [optimisticCategory, setOptimisticCategory] = useState(selectedCategory);
 
   const isMounted = useRef(false);
   useEffect(() => {
@@ -32,8 +34,15 @@ export function CategoryChips({
     };
   }, []);
 
+  // Sync optimistic state when parent URL changes
+  useEffect(() => {
+    setOptimisticCategory(selectedCategory);
+  }, [selectedCategory]);
+
   const handleCategoryClick = (categorySlug: string) => {
     if (!isMounted.current) return;
+    setOptimisticCategory(categorySlug); // INSTANT 0ms visual feedback
+
     const params = new URLSearchParams(searchParams.toString());
     if (categorySlug) {
       params.set("category", categorySlug);
@@ -56,30 +65,36 @@ export function CategoryChips({
         <button
           type="button"
           onClick={() => handleCategoryClick("")}
-          className={`shrink-0 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 border ${
-            !selectedCategory
+          className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-150 border cursor-pointer ${
+            !optimisticCategory
               ? "bg-rose-900 text-white border-rose-900 shadow-xs"
               : "bg-white text-stone-700 border-stone-200 hover:border-rose-300 hover:bg-rose-50/50"
           }`}
         >
-          All Outfits
+          {isPending && !optimisticCategory && (
+            <Loader2 size={13} className="animate-spin text-white" />
+          )}
+          <span>All Outfits</span>
         </button>
 
         {/* Dynamic Categories from Supabase */}
         {categories.map((cat) => {
-          const isSelected = selectedCategory === cat.slug;
+          const isSelected = optimisticCategory === cat.slug;
           return (
             <button
               key={cat.id}
               type="button"
               onClick={() => handleCategoryClick(cat.slug)}
-              className={`shrink-0 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 border ${
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-150 border cursor-pointer ${
                 isSelected
                   ? "bg-rose-900 text-white border-rose-900 shadow-xs"
                   : "bg-white text-stone-700 border-stone-200 hover:border-rose-300 hover:bg-rose-50/50"
               }`}
             >
-              {cat.name}
+              {isPending && isSelected && (
+                <Loader2 size={13} className="animate-spin text-white" />
+              )}
+              <span>{cat.name}</span>
             </button>
           );
         })}

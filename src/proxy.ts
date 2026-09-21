@@ -11,6 +11,24 @@ import { createMiddlewareClient } from "@/lib/supabase/middleware";
  *  4. Copy refreshed session cookies to any redirect responses.
  */
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  const isProtectedPath = pathname.startsWith("/account");
+  const isAuthLogin = pathname === "/auth/login";
+
+  // Check if any supabase auth cookie is present
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+
+  // FAST PATH: For public browsing routes (like /browse, /outfits, /, etc.)
+  // Skip the blocking 1.4-second network call to Supabase auth in middleware!
+  if (!isProtectedPath && !isAuthLogin) {
+    if (!hasAuthCookie || pathname.startsWith("/browse") || pathname.startsWith("/outfits")) {
+      return NextResponse.next({ request });
+    }
+  }
+
   const { supabase, getResponse } = createMiddlewareClient(request);
 
   // MUST call getUser() — validates JWT and refreshes session if needed.
@@ -18,11 +36,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-
   // ── Route protection ────────────────────────────────────────────────────────
-  const isProtectedPath = pathname.startsWith("/account");
-
   if (!user && isProtectedPath) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/auth/login";

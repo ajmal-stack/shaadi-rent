@@ -1,8 +1,8 @@
 "use client";
 
-import { useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { X, RotateCcw, Calendar, MapPin, Tag, Sparkles } from "lucide-react";
+import { X, RotateCcw, Calendar, MapPin, Tag, Sparkles, Loader2 } from "lucide-react";
 
 interface ActiveFilterBadgesProps {
   categoryName?: string;
@@ -28,7 +28,8 @@ export function ActiveFilterBadges({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
+  const [removedBadgeIds, setRemovedBadgeIds] = useState<Set<string>>(new Set());
 
   const isMounted = useRef(false);
   useEffect(() => {
@@ -38,8 +39,15 @@ export function ActiveFilterBadges({
     };
   }, []);
 
-  const removeParam = (keys: string[]) => {
+  // Reset optimistically removed badges when URL search params or props update
+  useEffect(() => {
+    setRemovedBadgeIds(new Set());
+  }, [categoryName, gender, minPrice, maxPrice, size, location, eventDate, query]);
+
+  const removeParam = (keys: string[], badgeId: string) => {
     if (!isMounted.current) return;
+    setRemovedBadgeIds((prev) => new Set(prev).add(badgeId)); // INSTANT UI removal
+
     const params = new URLSearchParams(searchParams.toString());
     keys.forEach((key) => params.delete(key));
     params.delete("page");
@@ -49,9 +57,11 @@ export function ActiveFilterBadges({
     });
   };
 
-  const removeSingleSize = (sizeToRemove: string) => {
+  const removeSingleSize = (sizeToRemove: string, badgeId: string) => {
     if (!isMounted.current) return;
     if (!size) return;
+    setRemovedBadgeIds((prev) => new Set(prev).add(badgeId)); // INSTANT UI removal
+
     const currentSizes = size
       .split(",")
       .map((s) => s.trim())
@@ -91,7 +101,7 @@ export function ActiveFilterBadges({
       id: "search",
       label: "Search",
       value: `"${query}"`,
-      onRemove: () => removeParam(["q"]),
+      onRemove: () => removeParam(["q"], "search"),
     });
   }
 
@@ -101,7 +111,7 @@ export function ActiveFilterBadges({
       label: "Category",
       value: categoryName,
       icon: <Tag size={11} className="text-rose-700" />,
-      onRemove: () => removeParam(["category"]),
+      onRemove: () => removeParam(["category"], "category"),
     });
   }
 
@@ -111,7 +121,7 @@ export function ActiveFilterBadges({
       label: "Wearer",
       value: gender === "bride" ? "Bride" : "Groom",
       icon: <Sparkles size={11} className="text-amber-600" />,
-      onRemove: () => removeParam(["gender"]),
+      onRemove: () => removeParam(["gender"], "gender"),
     });
   }
 
@@ -129,7 +139,7 @@ export function ActiveFilterBadges({
       id: "price",
       label: "Price",
       value: priceLabel,
-      onRemove: () => removeParam(["minPrice", "maxPrice"]),
+      onRemove: () => removeParam(["minPrice", "maxPrice"], "price"),
     });
   }
 
@@ -139,11 +149,12 @@ export function ActiveFilterBadges({
       .map((s) => s.trim())
       .filter(Boolean);
     sizeList.forEach((sz) => {
+      const badgeId = `size-${sz}`;
       badges.push({
-        id: `size-${sz}`,
+        id: badgeId,
         label: "Size",
         value: sz,
-        onRemove: () => removeSingleSize(sz),
+        onRemove: () => removeSingleSize(sz, badgeId),
       });
     });
   }
@@ -154,7 +165,7 @@ export function ActiveFilterBadges({
       label: "City",
       value: location,
       icon: <MapPin size={11} className="text-rose-700" />,
-      onRemove: () => removeParam(["location"]),
+      onRemove: () => removeParam(["location"], "location"),
     });
   }
 
@@ -183,11 +194,12 @@ export function ActiveFilterBadges({
       label: "Event Date",
       value: dateDisplay,
       icon: <Calendar size={11} className="text-rose-700" />,
-      onRemove: () => removeParam(["eventDate"]),
+      onRemove: () => removeParam(["eventDate"], "eventDate"),
     });
   }
 
-  if (badges.length === 0) return null;
+  const visibleBadges = badges.filter((b) => !removedBadgeIds.has(b.id));
+  if (visibleBadges.length === 0) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-2 pt-1 pb-3">
@@ -195,7 +207,7 @@ export function ActiveFilterBadges({
         Active Filters:
       </span>
 
-      {badges.map((badge) => (
+      {visibleBadges.map((badge) => (
         <span
           key={badge.id}
           className="inline-flex items-center gap-1.5 rounded-full border border-rose-200/90 bg-rose-50/80 px-2.5 py-1 text-xs font-medium text-rose-950 shadow-2xs transition-all hover:bg-rose-100"
@@ -219,7 +231,11 @@ export function ActiveFilterBadges({
         onClick={clearAll}
         className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-rose-900 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
       >
-        <RotateCcw size={11} />
+        {isPending ? (
+          <Loader2 size={11} className="animate-spin text-rose-700" />
+        ) : (
+          <RotateCcw size={11} />
+        )}
         <span>Clear all</span>
       </button>
     </div>

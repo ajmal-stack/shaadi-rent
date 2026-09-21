@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ChevronRight, PackageOpen, ArrowLeft, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { BrowseFilters } from "@/components/browse/BrowseFilters";
@@ -31,6 +32,54 @@ interface BrowsePageProps {
 
 const PAGE_SIZE = 12;
 
+// ── In-Memory Caches for Static / Infrequent DB Lookups (5-minute TTL) ──────
+interface CacheEntry<T> {
+  data: T;
+  expiry: number;
+}
+
+let cachedCategories: CacheEntry<Array<{ id: string; name: string; slug: string; gender_type: string }>> | null = null;
+let cachedCities: CacheEntry<string[]> | null = null;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function getCategories(supabase: any) {
+  const now = Date.now();
+  if (cachedCategories && now < cachedCategories.expiry) {
+    return cachedCategories.data;
+  }
+  const { data } = await supabase
+    .from("categories")
+    .select("id, name, slug, gender_type")
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+  const result = data ?? [];
+  cachedCategories = { data: result, expiry: now + CACHE_TTL_MS };
+  return result;
+}
+
+async function getAvailableCities(supabase: any) {
+  const now = Date.now();
+  if (cachedCities && now < cachedCities.expiry) {
+    return cachedCities.data;
+  }
+  const { data: cityRows } = await supabase
+    .from("outfits")
+    .select("city")
+    .eq("status", "published")
+    .eq("verification_status", "approved")
+    .not("city", "is", null);
+
+  const result = Array.from(
+    new Set(
+      (cityRows || [])
+        .map((r: any) => r.city?.trim())
+        .filter((c: any): c is string => Boolean(c))
+    )
+  ).sort();
+  cachedCities = { data: result, expiry: now + CACHE_TTL_MS };
+  return result;
+}
+
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const params = await searchParams;
   const q = params.q?.trim() || "";
@@ -46,33 +95,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
   const supabase = await createClient();
 
-  // 1. Fetch active categories for dynamic category filter chips
-  const { data: rawCategories } = await supabase
-    .from("categories")
-    .select("id, name, slug, gender_type")
-    .eq("is_active", true)
-    .order("name", { ascending: true });
-
-  const categories = rawCategories ?? [];
-  const selectedCategoryObj = categories.find((c) => c.slug === category);
-
-  // 2. Fetch distinct published cities for location filter suggestions (TASK 10.3)
-  const { data: cityRows } = await supabase
-    .from("outfits")
-    .select("city")
-    .eq("status", "published")
-    .eq("verification_status", "approved")
-    .not("city", "is", null);
-
-  const availableCities: string[] = Array.from(
-    new Set(
-      (cityRows || [])
-        .map((r) => r.city?.trim())
-        .filter((c): c is string => Boolean(c))
-    )
-  ).sort();
-
-  // 3. Calculate date availability conflicts if eventDate is provided (TASK 10.1)
+  // 1. Calculate date availability conflicts if eventDate is provided (TASK 10.1)
   let unavailableOutfitIds: string[] = [];
   if (eventDate) {
     try {
@@ -87,24 +110,24 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         const delStr = delDate.toISOString().slice(0, 10);
         const retStr = retDate.toISOString().slice(0, 10);
 
-        // A. Conflict with outfit_availability (blocked or maintenance windows)
-        const { data: blockedAvail } = await supabase
-          .from("outfit_availability")
-          .select("outfit_id")
-          .in("status", ["blocked", "maintenance"])
-          .lte("start_date", retStr)
-          .gte("end_date", delStr);
+        // Run both conflict checks concurrently
+        const [{ data: blockedAvail }, { data: bookedOutfits }] = await Promise.all([
+          supabase
+            .from("outfit_availability")
+            .select("outfit_id")
+            .in("status", ["blocked", "maintenance"])
+            .lte("start_date", retStr)
+            .gte("end_date", delStr),
+          supabase
+            .from("bookings")
+            .select("outfit_id")
+            .not("status", "in", '("cancelled","refunded")')
+            .lte("rental_start_date", retStr)
+            .gte("rental_end_date", delStr),
+        ]);
 
-        // B. Conflict with active/confirmed bookings
-        const { data: bookedOutfits } = await supabase
-          .from("bookings")
-          .select("outfit_id")
-          .not("status", "in", '("cancelled","refunded")')
-          .lte("rental_start_date", retStr)
-          .gte("rental_end_date", delStr);
-
-        const blockedIds = (blockedAvail || []).map((r) => r.outfit_id);
-        const bookedIds = (bookedOutfits || []).map((r) => r.outfit_id);
+        const blockedIds = (blockedAvail || []).map((r: any) => r.outfit_id);
+        const bookedIds = (bookedOutfits || []).map((r: any) => r.outfit_id);
         unavailableOutfitIds = Array.from(
           new Set([...blockedIds, ...bookedIds])
         );
@@ -114,7 +137,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     }
   }
 
-  // 4. Build query for published & approved outfits
+  // 2. Build query for published & approved outfits
   let query = supabase
     .from("outfits")
     .select(
@@ -134,7 +157,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       status,
       verification_status,
       created_at,
-      category:categories!inner (
+      category:categories${category || (gender && gender !== "all") ? "!inner" : ""} (
         id,
         name,
         slug,
@@ -220,29 +243,43 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const to = from + PAGE_SIZE - 1;
   query = query.range(from, to);
 
-  const { data: rawOutfits, count: totalCount, error } = await query;
+  // 3. Fast-path auth check using cookies and getSession() to avoid blocking network call
+  const cookieStore = await cookies();
+  const hasAuthCookie = cookieStore
+    .getAll()
+    .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
 
-  if (error) {
-    console.error("Browse query error:", error.message);
+  const [categories, availableCities, outfitsRes, sessionRes] = await Promise.all([
+    getCategories(supabase),
+    getAvailableCities(supabase),
+    query,
+    hasAuthCookie
+      ? supabase.auth.getSession()
+      : Promise.resolve({ data: { session: null } }),
+  ]);
+
+  const rawOutfits = outfitsRes.data;
+  const totalCount = outfitsRes.count;
+  if (outfitsRes.error) {
+    console.error("Browse query error:", outfitsRes.error.message);
   }
 
   const outfits = (rawOutfits as unknown as OutfitCardData[]) || [];
   const total = totalCount ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  // Fetch wishlisted outfit IDs for authenticated user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const selectedCategoryObj = categories.find((c: any) => c.slug === category);
 
+  // Fetch wishlisted outfit IDs for authenticated user (if logged in)
   let wishlistedIds = new Set<string>();
-  if (user) {
+  const userId = sessionRes?.data?.session?.user?.id;
+  if (userId) {
     const { data: wishRows } = await supabase
       .from("wishlists")
       .select("outfit_id")
-      .eq("user_id", user.id);
+      .eq("user_id", userId);
     if (wishRows) {
-      wishlistedIds = new Set(wishRows.map((r) => r.outfit_id));
+      wishlistedIds = new Set(wishRows.map((r: any) => r.outfit_id));
     }
   }
 
@@ -331,22 +368,30 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       {/* ── Main Content Area: Filters + Grid ── */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
         {/* Mobile Sticky Filter & Sort Toolbar */}
-        <div className="sticky top-14 z-20 flex lg:hidden items-center justify-between gap-3 mb-6 py-3 px-4 -mx-4 sm:-mx-6 bg-stone-50/95 backdrop-blur-md border-b border-stone-200/70 shadow-2xs">
-          <BrowseFilters
-            mode="mobile"
-            categories={categories}
-            selectedCategory={category}
-            selectedGender={gender}
-            selectedMinPrice={minPrice}
-            selectedMaxPrice={maxPrice}
-            selectedSize={size}
-            selectedLocation={location}
-            selectedEventDate={eventDate}
-            availableCities={availableCities}
-            searchQuery={q}
-          />
+        <div className="sticky top-14 md:top-16 z-20 flex lg:hidden items-center justify-between gap-2.5 mb-6 py-3 px-4 sm:px-6 -mx-4 sm:-mx-6 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-2xs transition-all">
+          <div className="flex items-center gap-2">
+            <BrowseFilters
+              mode="mobile"
+              categories={categories}
+              selectedCategory={category}
+              selectedGender={gender}
+              selectedMinPrice={minPrice}
+              selectedMaxPrice={maxPrice}
+              selectedSize={size}
+              selectedLocation={location}
+              selectedEventDate={eventDate}
+              availableCities={availableCities}
+              searchQuery={q}
+              totalOutfits={total}
+            />
+          </div>
 
-          <BrowseSort currentSort={sort} />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-stone-500 font-medium hidden sm:inline">
+              {total} {total === 1 ? "outfit" : "outfits"}
+            </span>
+            <BrowseSort currentSort={sort} />
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -363,6 +408,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             selectedEventDate={eventDate}
             availableCities={availableCities}
             searchQuery={q}
+            totalOutfits={total}
           />
 
           {/* Right Main Feed */}
