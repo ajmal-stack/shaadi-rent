@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   X,
@@ -131,6 +131,48 @@ function FilterInner({
   availableCities,
   openCalendarModal,
 }: FilterInnerProps) {
+  // Local state for debounced text inputs to prevent router action spam
+  const [localLocation, setLocalLocation] = useState(selectedLocation);
+  const [localMinPrice, setLocalMinPrice] = useState(selectedMinPrice);
+  const [localMaxPrice, setLocalMaxPrice] = useState(selectedMaxPrice);
+
+  const isLocationDirty = useRef(false);
+  const isPriceDirty = useRef(false);
+
+  // Sync local inputs when props change externally (e.g. badge removed or URL changed)
+  useEffect(() => {
+    if (!isLocationDirty.current) {
+      setLocalLocation(selectedLocation);
+    }
+  }, [selectedLocation]);
+
+  useEffect(() => {
+    if (!isPriceDirty.current) {
+      setLocalMinPrice(selectedMinPrice);
+      setLocalMaxPrice(selectedMaxPrice);
+    }
+  }, [selectedMinPrice, selectedMaxPrice]);
+
+  // Debounced location update ONLY when dirty (user typed)
+  useEffect(() => {
+    if (!isLocationDirty.current) return;
+    const timer = setTimeout(() => {
+      isLocationDirty.current = false;
+      updateParam("location", localLocation.trim());
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [localLocation, updateParam]);
+
+  // Debounced price tier update ONLY when dirty (user typed)
+  useEffect(() => {
+    if (!isPriceDirty.current) return;
+    const timer = setTimeout(() => {
+      isPriceDirty.current = false;
+      updatePriceTier(localMinPrice, localMaxPrice);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localMinPrice, localMaxPrice, updatePriceTier]);
+
   // Multi-size selection parser
   const selectedSizeList = selectedSize
     ? selectedSize.split(",").map((s) => s.trim()).filter(Boolean)
@@ -179,7 +221,7 @@ function FilterInner({
         </div>
       </div>
 
-      {/* 2. Available on Date Filter (TASK 10.1 - FIXED: Never clipped by overflow) */}
+      {/* 2. Available on Date Filter */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">
@@ -247,7 +289,12 @@ function FilterInner({
           {(selectedMinPrice || selectedMaxPrice) && (
             <button
               type="button"
-              onClick={() => updatePriceTier("", "")}
+              onClick={() => {
+                isPriceDirty.current = false;
+                setLocalMinPrice("");
+                setLocalMaxPrice("");
+                updatePriceTier("", "");
+              }}
               className="text-[10px] text-rose-800 hover:underline font-semibold cursor-pointer"
             >
               Reset
@@ -263,7 +310,12 @@ function FilterInner({
               <button
                 key={tier.label}
                 type="button"
-                onClick={() => updatePriceTier(tier.min, tier.max)}
+                onClick={() => {
+                  isPriceDirty.current = false;
+                  setLocalMinPrice(tier.min);
+                  setLocalMaxPrice(tier.max);
+                  updatePriceTier(tier.min, tier.max);
+                }}
                 className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
                   isSelected
                     ? "bg-rose-50 font-semibold text-rose-950 border border-rose-200"
@@ -279,7 +331,7 @@ function FilterInner({
           })}
         </div>
 
-        {/* Custom Min / Max Inputs */}
+        {/* Custom Min / Max Inputs with local state */}
         <div className="mt-3 pt-3 border-t border-stone-100 flex items-center gap-2">
           <div className="relative flex-1">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-stone-400">
@@ -288,8 +340,18 @@ function FilterInner({
             <input
               type="number"
               placeholder="Min"
-              value={selectedMinPrice}
-              onChange={(e) => updateParam("minPrice", e.target.value)}
+              value={localMinPrice}
+              onChange={(e) => {
+                isPriceDirty.current = true;
+                setLocalMinPrice(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  isPriceDirty.current = false;
+                  updatePriceTier(localMinPrice, localMaxPrice);
+                }
+              }}
               className="w-full rounded-xl border border-stone-200 pl-6 pr-2 py-1.5 text-xs text-stone-800 placeholder:text-stone-400 focus:border-rose-600 focus:outline-none"
             />
           </div>
@@ -301,8 +363,18 @@ function FilterInner({
             <input
               type="number"
               placeholder="Max"
-              value={selectedMaxPrice}
-              onChange={(e) => updateParam("maxPrice", e.target.value)}
+              value={localMaxPrice}
+              onChange={(e) => {
+                isPriceDirty.current = true;
+                setLocalMaxPrice(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  isPriceDirty.current = false;
+                  updatePriceTier(localMinPrice, localMaxPrice);
+                }
+              }}
               className="w-full rounded-xl border border-stone-200 pl-6 pr-2 py-1.5 text-xs text-stone-800 placeholder:text-stone-400 focus:border-rose-600 focus:outline-none"
             />
           </div>
@@ -359,7 +431,11 @@ function FilterInner({
           {selectedLocation && (
             <button
               type="button"
-              onClick={() => updateParam("location", "")}
+              onClick={() => {
+                isLocationDirty.current = false;
+                setLocalLocation("");
+                updateParam("location", "");
+              }}
               className="text-[10px] text-rose-800 hover:underline font-semibold cursor-pointer"
             >
               Reset
@@ -367,7 +443,7 @@ function FilterInner({
           )}
         </div>
 
-        {/* Custom Location Search Input */}
+        {/* Custom Location Search Input with debouncing */}
         <div className="relative mb-2.5">
           <MapPin
             size={13}
@@ -376,15 +452,30 @@ function FilterInner({
           <input
             type="text"
             placeholder="Search city, district or state..."
-            value={selectedLocation}
-            onChange={(e) => updateParam("location", e.target.value)}
-            className="w-full rounded-xl border border-stone-200 pl-8 pr-3 py-1.5 text-xs text-stone-800 placeholder:text-stone-400 focus:border-rose-600 focus:outline-none"
+            value={localLocation}
+            onChange={(e) => {
+              isLocationDirty.current = true;
+              setLocalLocation(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                isLocationDirty.current = false;
+                updateParam("location", localLocation.trim());
+              }
+            }}
+            className="w-full rounded-xl border border-stone-200 pl-8 pr-8 py-1.5 text-xs text-stone-800 placeholder:text-stone-400 focus:border-rose-600 focus:outline-none"
           />
-          {selectedLocation && (
+          {localLocation && (
             <button
               type="button"
-              onClick={() => updateParam("location", "")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+              onClick={() => {
+                isLocationDirty.current = false;
+                setLocalLocation("");
+                updateParam("location", "");
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+              title="Clear input"
             >
               <X size={12} />
             </button>
@@ -399,7 +490,12 @@ function FilterInner({
               <button
                 key={loc}
                 type="button"
-                onClick={() => updateParam("location", isSelected ? "" : loc)}
+                onClick={() => {
+                  isLocationDirty.current = false;
+                  const nextLoc = isSelected ? "" : loc;
+                  setLocalLocation(nextLoc);
+                  updateParam("location", nextLoc);
+                }}
                 className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-medium transition-all border cursor-pointer ${
                   isSelected
                     ? "border-rose-800 bg-rose-50 text-rose-900 font-semibold shadow-2xs"
@@ -456,42 +552,59 @@ export function BrowseFilters({
     setTempDate(parseToDate(selectedEventDate));
   }, [selectedEventDate]);
 
+  const isMounted = useRef(false);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // Tomorrow is earliest valid event date
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const updateParam = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (!value || value === "all") {
-      params.delete(key);
-    } else {
-      params.set(key, value);
-    }
-    params.delete("page");
-    startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
-    });
-  };
+  const updateParam = useCallback(
+    (key: string, value: string) => {
+      if (!isMounted.current) return;
+      const params = new URLSearchParams(searchParams.toString());
+      if (!value || value === "all") {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+      params.delete("page");
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
+    },
+    [pathname, router, searchParams]
+  );
 
-  const updatePriceTier = (min: string, max: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (min) params.set("minPrice", min);
-    else params.delete("minPrice");
+  const updatePriceTier = useCallback(
+    (min: string, max: string) => {
+      if (!isMounted.current) return;
+      const params = new URLSearchParams(searchParams.toString());
+      if (min) params.set("minPrice", min);
+      else params.delete("minPrice");
 
-    if (max) params.set("maxPrice", max);
-    else params.delete("maxPrice");
+      if (max) params.set("maxPrice", max);
+      else params.delete("maxPrice");
 
-    params.delete("page");
-    startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
-    });
-  };
+      params.delete("page");
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
+    },
+    [pathname, router, searchParams]
+  );
 
-  const clearAllFilters = () => {
-    router.push(pathname);
+  const clearAllFilters = useCallback(() => {
+    if (!isMounted.current) return;
+    router.push(pathname, { scroll: false });
     setMobileFilterOpen(false);
     setCalendarModalOpen(false);
-  };
+  }, [pathname, router]);
 
   // Count active filters
   let activeFilterCount = 0;

@@ -82,7 +82,16 @@ export function BrowseSort({ currentSort = "recommended" }: BrowseSortProps) {
     };
   }, [isOpen]);
 
+  const isMounted = useRef(false);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const handleSelect = (newSort: string) => {
+    if (!isMounted.current) return;
     setIsOpen(false);
     const params = new URLSearchParams(searchParams.toString());
     if (newSort === "recommended") {
@@ -92,7 +101,7 @@ export function BrowseSort({ currentSort = "recommended" }: BrowseSortProps) {
     }
     params.delete("page"); // reset to page 1 on sort change
     const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
 
   return (

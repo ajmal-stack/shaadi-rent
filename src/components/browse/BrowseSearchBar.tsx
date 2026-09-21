@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Search, X, Loader2 } from "lucide-react";
 
@@ -16,6 +16,14 @@ export function BrowseSearchBar({ initialQuery = "" }: BrowseSearchBarProps) {
   const [prevInitialQuery, setPrevInitialQuery] = useState(initialQuery);
   const [isPending, startTransition] = useTransition();
 
+  const isMounted = useRef(false);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // Adjust state during render when prop changes (React recommended pattern)
   if (initialQuery !== prevInitialQuery) {
     setPrevInitialQuery(initialQuery);
@@ -24,6 +32,7 @@ export function BrowseSearchBar({ initialQuery = "" }: BrowseSearchBarProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isMounted.current) return;
     const params = new URLSearchParams(searchParams.toString());
     const trimmed = query.trim();
     if (trimmed) {
@@ -35,11 +44,12 @@ export function BrowseSearchBar({ initialQuery = "" }: BrowseSearchBarProps) {
     const qs = params.toString();
 
     startTransition(() => {
-      router.push(qs ? `${pathname}?${qs}` : pathname);
+      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     });
   };
 
   const handleClear = () => {
+    if (!isMounted.current) return;
     setQuery("");
     const params = new URLSearchParams(searchParams.toString());
     params.delete("q");
@@ -47,7 +57,7 @@ export function BrowseSearchBar({ initialQuery = "" }: BrowseSearchBarProps) {
     const qs = params.toString();
 
     startTransition(() => {
-      router.push(qs ? `${pathname}?${qs}` : pathname);
+      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     });
   };
 

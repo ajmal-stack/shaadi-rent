@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { X, RotateCcw, Calendar, MapPin, Tag, Sparkles } from "lucide-react";
 
@@ -30,17 +30,27 @@ export function ActiveFilterBadges({
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
+  const isMounted = useRef(false);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const removeParam = (keys: string[]) => {
+    if (!isMounted.current) return;
     const params = new URLSearchParams(searchParams.toString());
     keys.forEach((key) => params.delete(key));
     params.delete("page");
     const qs = params.toString();
     startTransition(() => {
-      router.push(qs ? `${pathname}?${qs}` : pathname);
+      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     });
   };
 
   const removeSingleSize = (sizeToRemove: string) => {
+    if (!isMounted.current) return;
     if (!size) return;
     const currentSizes = size
       .split(",")
@@ -56,13 +66,14 @@ export function ActiveFilterBadges({
     params.delete("page");
     const qs = params.toString();
     startTransition(() => {
-      router.push(qs ? `${pathname}?${qs}` : pathname);
+      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     });
   };
 
   const clearAll = () => {
+    if (!isMounted.current) return;
     startTransition(() => {
-      router.push(pathname);
+      router.push(pathname, { scroll: false });
     });
   };
 

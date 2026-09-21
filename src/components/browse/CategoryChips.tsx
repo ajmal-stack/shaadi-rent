@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 export interface CategoryItem {
@@ -24,7 +24,16 @@ export function CategoryChips({
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
+  const isMounted = useRef(false);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const handleCategoryClick = (categorySlug: string) => {
+    if (!isMounted.current) return;
     const params = new URLSearchParams(searchParams.toString());
     if (categorySlug) {
       params.set("category", categorySlug);
@@ -35,7 +44,7 @@ export function CategoryChips({
     const qs = params.toString();
 
     startTransition(() => {
-      router.push(qs ? `${pathname}?${qs}` : pathname);
+      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     });
   };
 
