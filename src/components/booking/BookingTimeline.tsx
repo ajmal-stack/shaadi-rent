@@ -202,13 +202,12 @@ export function BookingTimeline({
             <div className="flex flex-col items-center">
               {/* Icon circle */}
               <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 shrink-0 transition-all duration-300 ${
-                  isDone
+                className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 shrink-0 transition-all duration-300 ${isDone
                     ? "bg-emerald-500 border-emerald-500 shadow-sm shadow-emerald-200"
                     : isCurrent
-                    ? `${step.bg} ${step.border} shadow-md`
-                    : "bg-stone-100 border-stone-200"
-                }`}
+                      ? `${step.bg} ${step.border} shadow-md`
+                      : "bg-stone-100 border-stone-200"
+                  }`}
               >
                 {isDone ? (
                   <CheckCircle2 size={18} className="text-white" />
@@ -222,9 +221,8 @@ export function BookingTimeline({
               {/* Vertical connector (not on last item) */}
               {i < TIMELINE_STEPS.length - 1 && (
                 <div
-                  className={`w-0.5 flex-1 min-h-[1.5rem] my-1 rounded-full transition-colors duration-300 ${
-                    isDone ? "bg-emerald-400" : "bg-stone-200"
-                  }`}
+                  className={`w-0.5 flex-1 min-h-[1.5rem] my-1 rounded-full transition-colors duration-300 ${isDone ? "bg-emerald-400" : "bg-stone-200"
+                    }`}
                 />
               )}
             </div>
@@ -233,13 +231,12 @@ export function BookingTimeline({
             <div className={`pb-5 pt-1.5 flex-1 min-w-0 ${i === TIMELINE_STEPS.length - 1 ? "pb-0" : ""}`}>
               <div className="flex items-center gap-2 flex-wrap">
                 <p
-                  className={`text-sm font-bold leading-tight transition-colors ${
-                    isDone
+                  className={`text-sm font-bold leading-tight transition-colors ${isDone
                       ? "text-emerald-700 line-through decoration-emerald-400/60"
                       : isCurrent
-                      ? "text-stone-900"
-                      : "text-stone-400"
-                  }`}
+                        ? "text-stone-900"
+                        : "text-stone-400"
+                    }`}
                 >
                   {step.label}
                 </p>

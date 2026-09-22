@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardCharts } from "@/components/admin/dashboard/DashboardCharts";
+import { DateRangeSelector } from "@/components/admin/dashboard/DateRangeSelector";
+import { ExportBookingsButton } from "@/components/admin/dashboard/ExportBookingsButton";
+import { TopOutfitsWidget, type TopOutfitItem } from "@/components/admin/dashboard/TopOutfitsWidget";
+import { getOutfitImageUrl } from "@/lib/utils/image";
 import type { RecentBooking } from "@/components/admin/dashboard/RecentBookingsFeed";
 
 export const metadata: Metadata = {
@@ -40,58 +44,77 @@ function startOfMonth(): string {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
 }
 
-/** Start of last month */
-function startOfLastMonth(): string {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth() - 1, 1).toISOString();
-}
-
 /** Compute % trend between current and previous period counts. */
 function trend(current: number, previous: number): number | null {
   if (previous === 0) return null;
   return Math.round(((current - previous) / previous) * 100);
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────
+// ── Page Component ─────────────────────────────────────────────────────────
 
-export default async function AdminDashboardPage() {
-  const supabase = await createClient();
+interface AdminDashboardPageProps {
+  searchParams?: Promise<{ range?: string }>;
+}
 
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
+export default async function AdminDashboardPage(props: AdminDashboardPageProps) {
+  const searchParams = await props.searchParams;
+  const rawRange = searchParams?.range;
+  const range = rawRange === "7d" || rawRange === "90d" || rawRange === "all" ? rawRange : "30d";
 
-  const fourteenDaysAgo = new Date();
-  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-  const fourteenDaysAgoISO = fourteenDaysAgo.toISOString();
+  let daysCount = 30;
+  let rangeLabel = "Last 30 Days";
+  let prevPeriodDays = 30;
+
+  if (range === "7d") {
+    daysCount = 7;
+    rangeLabel = "Last 7 Days";
+    prevPeriodDays = 7;
+  } else if (range === "90d") {
+    daysCount = 90;
+    rangeLabel = "Last 90 Days";
+    prevPeriodDays = 90;
+  } else if (range === "all") {
+    daysCount = 365;
+    rangeLabel = "All Time";
+    prevPeriodDays = 365;
+  }
+
+  const currentRangeStart = new Date();
+  if (range !== "all") {
+    currentRangeStart.setDate(currentRangeStart.getDate() - daysCount);
+  } else {
+    currentRangeStart.setFullYear(2020, 0, 1);
+  }
+  const currentRangeStartISO = currentRangeStart.toISOString();
+
+  const prevRangeStart = new Date(currentRangeStart);
+  prevRangeStart.setDate(prevRangeStart.getDate() - prevPeriodDays);
+  const prevRangeStartISO = prevRangeStart.toISOString();
 
   const thisMonthStart = startOfMonth();
-  const lastMonthStart = startOfLastMonth();
+
+  const supabase = await createClient();
 
   // ── Parallel data fetches ─────────────────────────────────────
   const [
     { count: pendingApplicationsCount },
     { count: totalOwnersCount },
     { count: totalOutfitsCount },
-    { count: totalBookingsCount },
     { data: recentApplications },
-    // Bookings in last 30 days for sparkline
-    { data: bookingsLast30 },
+    // Bookings in selected range
+    { data: bookingsInRange },
+    // Bookings in previous period (for trend)
+    { count: bookingsPrevPeriodCount },
     // All bookings for status breakdown
     { data: allBookingsStatus },
-    // Payments (successful) for revenue
-    { data: paymentsLast14 },
-    { data: paymentsThisMonth },
-    { data: paymentsLastMonth },
-    // Bookings this month vs last for trend
-    { count: bookingsThisMonth },
-    { count: bookingsLastMonth },
+    // Payments (successful) in range
+    { data: paymentsInRange },
+    // Payments in previous period (for trend)
+    { data: paymentsPrevPeriod },
     // Recent bookings feed
     { data: recentBookingsRaw },
     // New users this month
     { count: newUsersThisMonth },
-    // All-time platform revenue
-    { data: allRevenue },
   ] = await Promise.all([
     supabase
       .from("owner_applications")
@@ -102,50 +125,38 @@ export default async function AdminDashboardPage() {
       .select("*", { count: "exact", head: true })
       .eq("role", "owner"),
     supabase.from("outfits").select("*", { count: "exact", head: true }),
-    supabase.from("bookings").select("*", { count: "exact", head: true }),
     supabase
       .from("owner_applications")
       .select("id, full_name, phone, status, created_at, id_type, city, state")
       .neq("status", "draft")
       .order("created_at", { ascending: false })
       .limit(5),
-    // Bookings last 30 days
+    // Bookings in range
     supabase
       .from("bookings")
-      .select("created_at")
-      .gte("created_at", thirtyDaysAgoISO),
+      .select("id, created_at, outfit_id, rental_amount, total_amount, status")
+      .gte("created_at", currentRangeStartISO),
+    // Bookings in previous period
+    supabase
+      .from("bookings")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", prevRangeStartISO)
+      .lt("created_at", currentRangeStartISO),
     // All bookings statuses
     supabase.from("bookings").select("status"),
-    // Revenue last 14 days
+    // Payments in range
     supabase
       .from("payments")
       .select("amount, created_at")
       .eq("status", "successful")
-      .gte("created_at", fourteenDaysAgoISO),
-    // Revenue this month
+      .gte("created_at", currentRangeStartISO),
+    // Payments in previous period
     supabase
       .from("payments")
       .select("amount")
       .eq("status", "successful")
-      .gte("created_at", thisMonthStart),
-    // Revenue last month
-    supabase
-      .from("payments")
-      .select("amount")
-      .eq("status", "successful")
-      .gte("created_at", lastMonthStart)
-      .lt("created_at", thisMonthStart),
-    // Bookings this month
-    supabase
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", thisMonthStart),
-    // Bookings last month
-    supabase
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", lastMonthStart)
-      .lt("created_at", thisMonthStart),
+      .gte("created_at", prevRangeStartISO)
+      .lt("created_at", currentRangeStartISO),
     // Recent bookings feed
     supabase
       .from("bookings")
@@ -161,33 +172,90 @@ export default async function AdminDashboardPage() {
       .from("profiles")
       .select("*", { count: "exact", head: true })
       .gte("created_at", thisMonthStart),
-    // All-time successful payments
-    supabase.from("payments").select("amount").eq("status", "successful"),
   ]);
 
-  // ── Aggregate bookings by day (last 30) ───────────────────────
-  const days30 = getLastNDays(30);
+  // ── Aggregate bookings by day for sparkline/line chart ────────
+  const chartDaysCount = range === "7d" ? 7 : range === "90d" ? 90 : 30;
+  const chartDays = getLastNDays(chartDaysCount);
   const bookingCountByDay: Record<string, number> = {};
-  days30.forEach((d) => (bookingCountByDay[d] = 0));
-  (bookingsLast30 ?? []).forEach((b) => {
+  chartDays.forEach((d) => (bookingCountByDay[d] = 0));
+  (bookingsInRange ?? []).forEach((b) => {
     const day = b.created_at.slice(0, 10);
     if (day in bookingCountByDay) bookingCountByDay[day]++;
   });
-  const bookingsByDay = days30.map((d) => bookingCountByDay[d]);
-  const bookingLabels = days30.map(fmtLabel);
+  const bookingsByDay = chartDays.map((d) => bookingCountByDay[d]);
+  const bookingLabels = chartDays.map(fmtLabel);
 
-  // ── Aggregate revenue by day (last 14) ────────────────────────
-  const days14 = getLastNDays(14);
-  const revenueByDayMap: Record<string, number> = {};
-  days14.forEach((d) => (revenueByDayMap[d] = 0));
-  (paymentsLast14 ?? []).forEach((p) => {
-    const day = p.created_at.slice(0, 10);
-    if (day in revenueByDayMap) revenueByDayMap[day] += p.amount;
-  });
-  const revenueByDay = days14.map((d) => ({
-    label: fmtLabel(d),
-    value: Math.round(revenueByDayMap[d]),
-  }));
+  // ── Aggregate revenue bars based on selected range ─────────────
+  let revenueByDay: { label: string; value: number }[] = [];
+
+  if (range === "7d") {
+    const days7 = getLastNDays(7);
+    const revMap: Record<string, number> = {};
+    days7.forEach((d) => (revMap[d] = 0));
+    (paymentsInRange ?? []).forEach((p) => {
+      const d = p.created_at.slice(0, 10);
+      if (d in revMap) revMap[d] += p.amount;
+    });
+    revenueByDay = days7.map((d) => ({
+      label: fmtLabel(d),
+      value: Math.round(revMap[d]),
+    }));
+  } else if (range === "30d") {
+    const days15 = getLastNDays(15);
+    const revMap: Record<string, number> = {};
+    days15.forEach((d) => (revMap[d] = 0));
+    (paymentsInRange ?? []).forEach((p) => {
+      const d = p.created_at.slice(0, 10);
+      if (d in revMap) revMap[d] += p.amount;
+    });
+    revenueByDay = days15.map((d) => ({
+      label: fmtLabel(d),
+      value: Math.round(revMap[d]),
+    }));
+  } else if (range === "90d") {
+    // 12 weekly buckets for 90 days
+    const weeks: { startISO: string; endISO: string; label: string; value: number }[] = [];
+    const now = new Date();
+    for (let w = 11; w >= 0; w--) {
+      const start = new Date(now);
+      start.setDate(now.getDate() - (w + 1) * 7);
+      const end = new Date(now);
+      end.setDate(now.getDate() - w * 7);
+      weeks.push({
+        startISO: start.toISOString(),
+        endISO: end.toISOString(),
+        label: `W${12 - w}`,
+        value: 0,
+      });
+    }
+    (paymentsInRange ?? []).forEach((p) => {
+      const pDate = p.created_at;
+      const bucket = weeks.find((w) => pDate >= w.startISO && pDate < w.endISO);
+      if (bucket) bucket.value += p.amount;
+    });
+    revenueByDay = weeks.map((w) => ({ label: w.label, value: Math.round(w.value) }));
+  } else {
+    // All time: 12 monthly buckets
+    const months: { startISO: string; endISO: string; label: string; value: number }[] = [];
+    const now = new Date();
+    for (let m = 11; m >= 0; m--) {
+      const start = new Date(now.getFullYear(), now.getMonth() - m, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() - m + 1, 1);
+      months.push({
+        startISO: start.toISOString(),
+        endISO: end.toISOString(),
+        label: start.toLocaleDateString("en-IN", { month: "short" }),
+        value: 0,
+      });
+    }
+    (paymentsInRange ?? []).forEach((p) => {
+      const pDate = p.created_at;
+      const bucket = months.find((m) => pDate >= m.startISO && pDate < m.endISO);
+      if (bucket) bucket.value += p.amount;
+    });
+    revenueByDay = months.map((m) => ({ label: m.label, value: Math.round(m.value) }));
+  }
 
   // ── Booking status breakdown ───────────────────────────────────
   const statusCount: Record<string, number> = {};
@@ -218,14 +286,88 @@ export default async function AdminDashboardPage() {
     }))
     .sort((a, b) => b.value - a.value);
 
-  // ── Revenue totals ─────────────────────────────────────────────
-  const totalRevenue = (allRevenue ?? []).reduce((s, p) => s + p.amount, 0);
-  const revenueThisMonth = (paymentsThisMonth ?? []).reduce((s, p) => s + p.amount, 0);
-  const revenueLastMonth = (paymentsLastMonth ?? []).reduce((s, p) => s + p.amount, 0);
+  // ── Revenue & Bookings totals for range ─────────────────────────
+  const periodRevenue = (paymentsInRange ?? []).reduce((s, p) => s + p.amount, 0);
+  const prevPeriodRevenue = (paymentsPrevPeriod ?? []).reduce((s, p) => s + p.amount, 0);
+  const periodBookingsCount = (bookingsInRange ?? []).length;
 
   // ── Trends ────────────────────────────────────────────────────
-  const bookingsTrend = trend(bookingsThisMonth ?? 0, bookingsLastMonth ?? 0);
-  const revenueTrend = trend(revenueThisMonth, revenueLastMonth);
+  const bookingsTrend = trend(periodBookingsCount, bookingsPrevPeriodCount ?? 0);
+  const revenueTrend = trend(periodRevenue, prevPeriodRevenue);
+
+  // ── Top Performing Outfits Leaderboard ─────────────────────────
+  const outfitStatsMap = new Map<string, { count: number; revenue: number }>();
+
+  type BookingStatsSource = {
+    outfit_id: string;
+    rental_amount?: number;
+    total_amount?: number;
+    status?: string;
+  };
+
+  let sourceBookings: BookingStatsSource[] = (bookingsInRange ?? []).filter(
+    (b) => Boolean(b.outfit_id && b.status !== "cancelled")
+  );
+  if (sourceBookings.length === 0) {
+    // If current range has no booking data yet, query recent non-cancelled bookings as fallback
+    const { data: fallbackBookings } = await supabase
+      .from("bookings")
+      .select("outfit_id, rental_amount, total_amount, status")
+      .neq("status", "cancelled")
+      .limit(100);
+    sourceBookings = (fallbackBookings ?? []).filter((b) => Boolean(b.outfit_id));
+  }
+
+  sourceBookings.forEach((b) => {
+    if (!b.outfit_id) return;
+    const existing = outfitStatsMap.get(b.outfit_id) || { count: 0, revenue: 0 };
+    existing.count += 1;
+    existing.revenue += (b.total_amount || b.rental_amount || 0);
+    outfitStatsMap.set(b.outfit_id, existing);
+  });
+
+  const sortedOutfitEntries = Array.from(outfitStatsMap.entries())
+    .sort((a, b) => b[1].revenue - a[1].revenue || b[1].count - a[1].count)
+    .slice(0, 5);
+
+  const topOutfitIds = sortedOutfitEntries.map(([id]) => id);
+
+  let topOutfits: TopOutfitItem[] = [];
+  if (topOutfitIds.length > 0) {
+    const { data: outfitRows } = await supabase
+      .from("outfits")
+      .select(`
+        id,
+        title,
+        slug,
+        brand,
+        categories ( name ),
+        outfit_images ( storage_path, sort_order )
+      `)
+      .in("id", topOutfitIds);
+
+    if (outfitRows) {
+      topOutfits = sortedOutfitEntries.map(([id, stats]) => {
+        const outfit = outfitRows.find((o) => o.id === id);
+        const images = (outfit?.outfit_images as Array<{ storage_path: string; sort_order: number }> | undefined) || [];
+        const sortedImages = [...images].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        const primaryPath = sortedImages[0]?.storage_path;
+        const imageUrl = getOutfitImageUrl(primaryPath);
+        const categoryName = (outfit?.categories as unknown as { name?: string })?.name || null;
+
+        return {
+          id,
+          title: outfit?.title || "Bridal Outfit",
+          slug: outfit?.slug || id,
+          brand: outfit?.brand || null,
+          category_name: categoryName,
+          image_url: imageUrl,
+          bookings_count: stats.count,
+          total_revenue: stats.revenue,
+        };
+      });
+    }
+  }
 
   // ── Recent bookings feed ───────────────────────────────────────
   const recentBookings: RecentBooking[] = (recentBookingsRaw ?? []).map(
@@ -259,7 +401,7 @@ export default async function AdminDashboardPage() {
     <div className="py-10">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 space-y-8">
         {/* ── Header ────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 px-3 py-1 rounded-full border border-rose-200 dark:border-rose-800/60 mb-2">
               <Sparkles size={12} />
@@ -271,14 +413,23 @@ export default async function AdminDashboardPage() {
             <p className="mt-1 text-sm text-stone-400 dark:text-stone-500">{todayLabel}</p>
           </div>
 
-          <Link
-            href="/admin/applications"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-800 to-rose-950 px-5 py-3 text-xs font-semibold text-white shadow-md shadow-rose-950/20 hover:from-rose-900 hover:to-black transition-all"
-          >
-            <ShieldCheck size={16} />
-            <span>Applications Queue ({pendingApplicationsCount ?? 0})</span>
-            <ArrowRight size={14} />
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Date Range Selector Tab Pills */}
+            <DateRangeSelector currentRange={range} />
+
+            {/* Export CSV Button */}
+            <ExportBookingsButton currentRange={range} />
+
+            {/* Applications Queue Link */}
+            <Link
+              href="/admin/applications"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-800 to-rose-950 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-rose-950/20 hover:from-rose-900 hover:to-black transition-all"
+            >
+              <ShieldCheck size={16} />
+              <span>Queue ({pendingApplicationsCount ?? 0})</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
         </div>
 
         {/* ── Dynamic Charts + KPIs (Client Component) ──────── */}
@@ -286,8 +437,8 @@ export default async function AdminDashboardPage() {
           pendingApplicationsCount={pendingApplicationsCount ?? 0}
           totalOwnersCount={totalOwnersCount ?? 0}
           totalOutfitsCount={totalOutfitsCount ?? 0}
-          totalBookingsCount={totalBookingsCount ?? 0}
-          totalRevenue={Math.round(totalRevenue)}
+          totalBookingsCount={periodBookingsCount}
+          totalRevenue={Math.round(periodRevenue)}
           newUsersThisMonth={newUsersThisMonth ?? 0}
           bookingsByDay={bookingsByDay}
           bookingLabels={bookingLabels}
@@ -296,72 +447,80 @@ export default async function AdminDashboardPage() {
           recentBookings={recentBookings}
           bookingsTrend={bookingsTrend}
           revenueTrend={revenueTrend}
+          range={range}
+          rangeLabel={rangeLabel}
         />
 
-        {/* ── Recent Applications Feed ───────────────────────── */}
-        <div className="rounded-3xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800">
-            <div>
-              <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
-                Recent Onboarding Applications
-              </h2>
-              <p className="text-xs text-stone-400 dark:text-stone-500">
-                Latest submissions from prospective owners
+        {/* ── Top Outfits & Recent Applications Grid ─────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Top Performing Outfits Leaderboard */}
+          <TopOutfitsWidget outfits={topOutfits} rangeLabel={rangeLabel} />
+
+          {/* Recent Applications Feed */}
+          <div className="rounded-3xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800">
+              <div>
+                <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                  Recent Onboarding Applications
+                </h2>
+                <p className="text-xs text-stone-400 dark:text-stone-500">
+                  Latest submissions from prospective owners
+                </p>
+              </div>
+              <Link
+                href="/admin/applications"
+                className="text-xs font-semibold text-rose-800 dark:text-rose-400 hover:text-rose-950 dark:hover:text-rose-300"
+              >
+                View all →
+              </Link>
+            </div>
+
+            {!recentApplications || recentApplications.length === 0 ? (
+              <p className="text-xs text-stone-400 dark:text-stone-500 py-6 text-center">
+                No applications submitted yet.
               </p>
-            </div>
-            <Link
-              href="/admin/applications"
-              className="text-xs font-semibold text-rose-800 dark:text-rose-400 hover:text-rose-950 dark:hover:text-rose-300"
-            >
-              View all →
-            </Link>
+            ) : (
+              <div className="divide-y divide-stone-100 dark:divide-stone-800/80">
+                {recentApplications.map((app) => (
+                  <div
+                    key={app.id}
+                    className="py-3 flex items-center justify-between flex-wrap gap-2 text-xs"
+                  >
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-stone-900 dark:text-stone-100">{app.full_name}</span>
+                      <p className="text-[11px] text-stone-400 dark:text-stone-500">
+                        {app.city}, {app.state} · ID: {app.id_type?.toUpperCase()}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {app.status === "pending" && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-300">
+                          Pending
+                        </span>
+                      )}
+                      {app.status === "approved" && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
+                          Approved
+                        </span>
+                      )}
+                      {app.status === "rejected" && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-rose-300 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-0.5 text-[10px] font-bold text-rose-800 dark:text-rose-300">
+                          Rejected
+                        </span>
+                      )}
+                      <Link
+                        href="/admin/applications"
+                        className="text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-stone-100 font-semibold"
+                      >
+                        Review →
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-
-          {!recentApplications || recentApplications.length === 0 ? (
-            <p className="text-xs text-stone-400 dark:text-stone-500 py-6 text-center">
-              No applications submitted yet.
-            </p>
-          ) : (
-            <div className="divide-y divide-stone-100 dark:divide-stone-800/80">
-              {recentApplications.map((app) => (
-                <div
-                  key={app.id}
-                  className="py-3 flex items-center justify-between flex-wrap gap-2 text-xs"
-                >
-                  <div className="space-y-0.5">
-                    <span className="font-bold text-stone-900 dark:text-stone-100">{app.full_name}</span>
-                    <p className="text-[11px] text-stone-400 dark:text-stone-500">
-                      {app.city}, {app.state} · ID: {app.id_type?.toUpperCase()}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    {app.status === "pending" && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-300">
-                        Pending
-                      </span>
-                    )}
-                    {app.status === "approved" && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
-                        Approved
-                      </span>
-                    )}
-                    {app.status === "rejected" && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-rose-300 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-0.5 text-[10px] font-bold text-rose-800 dark:text-rose-300">
-                        Rejected
-                      </span>
-                    )}
-                    <Link
-                      href="/admin/applications"
-                      className="text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-stone-100 font-semibold"
-                    >
-                      Review →
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* ── Quick Actions ──────────────────────────────────── */}
@@ -411,7 +570,7 @@ export default async function AdminDashboardPage() {
               </p>
             </div>
             <div className="pt-5 flex items-center justify-between text-xs font-semibold text-violet-700 dark:text-violet-400">
-              <span>View all {totalBookingsCount ?? 0} bookings</span>
+              <span>View all bookings</span>
               <ChevronRight
                 size={16}
                 className="transition-transform group-hover:translate-x-1"
@@ -421,6 +580,5 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
     </div>
-
   );
 }

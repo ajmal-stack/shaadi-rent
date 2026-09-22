@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -25,9 +26,22 @@ import {
   Mail,
   Home,
   AlertCircle,
+  Eye,
+  EyeOff,
+  Bell,
+  Trash2,
+  KeyRound,
+  Smartphone,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
-import { updateProfileAction } from "@/app/(customer)/account/actions";
+import {
+  updateProfileAction,
+  changePasswordAction,
+  updateNotificationPrefsAction,
+  deleteAccountAction,
+  type NotificationPreferences,
+} from "@/app/(customer)/account/actions";
 import { signOut } from "@/app/(public)/auth/actions";
 
 export interface ProfileData {
@@ -41,6 +55,9 @@ export interface ProfileData {
   district: string | null;
   state: string | null;
   verification_status: "pending" | "verified" | "rejected";
+  notification_prefs?: NotificationPreferences;
+  auth_provider?: string;
+  has_password?: boolean;
   created_at: string;
 }
 
@@ -96,7 +113,7 @@ export function ProfileClient({
 }: ProfileClientProps) {
   const [profile, setProfile] = useState<ProfileData>(initialProfile);
   const [activeTab, setActiveTab] = useState<
-    "personal" | "bookings" | "address" | "boutique" | "security"
+    "personal" | "bookings" | "address" | "notifications" | "boutique" | "security"
   >("personal");
 
   // Form states
@@ -108,6 +125,35 @@ export function ProfileClient({
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || "");
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
   const [avatarInput, setAvatarInput] = useState(profile.avatar_url || "");
+
+  // ── Password Change Form State (TASK 11.1) ──────────────────────────────────
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [hasPasswordAccount, setHasPasswordAccount] = useState<boolean>(
+    initialProfile.has_password ?? true
+  );
+  const isGoogleAccount = initialProfile.auth_provider === "google";
+
+  // ── Notification Preferences State (TASK 11.2) ──────────────────────────────
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(
+    profile.notification_prefs || {
+      email_bookings: true,
+      sms_alerts: true,
+      whatsapp_updates: true,
+      promotions: false,
+    }
+  );
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+
+  // ── Delete Account Modal State (TASK 11.3) ──────────────────────────────────
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const [isPending, startTransition] = useTransition();
 
@@ -169,6 +215,105 @@ export function ProfileClient({
       setAvatarUrl(avatarInput.trim());
       setIsEditingAvatar(false);
       toast.info("Avatar updated. Click 'Save Changes' to permanently save.");
+    }
+  }
+
+  // ── Password Change / Set Handler (TASK 11.1) ────────────────────────────
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (hasPasswordAccount && !currentPassword) {
+      toast.error("Please enter your current password.");
+      return;
+    }
+    if (!newPassword || newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New password and confirm password do not match.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const res = await changePasswordAction(
+        hasPasswordAccount ? currentPassword : undefined,
+        newPassword
+      );
+      if (!res.success) {
+        toast.error(res.error || "Failed to update password.");
+      } else {
+        if (!hasPasswordAccount) {
+          setHasPasswordAccount(true);
+          toast.success("Password created! You can now log in using either Google or your email & password.");
+        } else {
+          toast.success("Password updated successfully! Your account is secure.");
+        }
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } catch {
+      toast.error("An unexpected error occurred while updating password.");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  }
+
+  // ── Notification Preferences Handlers (TASK 11.2) ─────────────────────────
+  async function handleSaveNotificationPrefs(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    setIsSavingPrefs(true);
+    try {
+      const res = await updateNotificationPrefsAction(notificationPrefs);
+      if (res.success) {
+        toast.success("Notification preferences saved successfully!");
+      } else {
+        toast.error(res.error || "Failed to save preferences.");
+      }
+    } catch {
+      toast.error("Failed to update notification preferences.");
+    } finally {
+      setIsSavingPrefs(false);
+    }
+  }
+
+  function toggleNotificationPref(key: keyof NotificationPreferences) {
+    setNotificationPrefs((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  }
+
+  // ── Delete Account Handler (TASK 11.3) ────────────────────────────────────
+  async function handleDeleteAccount() {
+    if (deleteConfirmText.trim() !== "DELETE") {
+      toast.error("Please type DELETE to confirm account removal.");
+      return;
+    }
+
+    if (activeBookingsCount > 0) {
+      toast.error(
+        `Cannot delete account: You have ${activeBookingsCount} active rental ${
+          activeBookingsCount === 1 ? "booking" : "bookings"
+        }. Please return all garments first.`
+      );
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      const res = await deleteAccountAction();
+      if (!res.success) {
+        toast.error(res.error || "Failed to delete account.");
+        setIsDeletingAccount(false);
+      } else {
+        toast.success("Account deleted successfully. We're sorry to see you go.");
+        window.location.href = "/";
+      }
+    } catch {
+      toast.error("Failed to delete account. Please try again or contact support.");
+      setIsDeletingAccount(false);
     }
   }
 
@@ -384,6 +529,7 @@ export function ProfileClient({
             { id: "personal", label: "Personal Details", icon: User },
             { id: "bookings", label: `My Bookings (${bookings.length})`, icon: Calendar },
             { id: "address", label: "Address & Pickup", icon: MapPin },
+            { id: "notifications", label: "Notifications", icon: Bell },
             { id: "boutique", label: "Boutique & Earnings", icon: Sparkles },
             { id: "security", label: "Security & Login", icon: Lock },
           ] as const).map((tab) => {
@@ -689,7 +835,167 @@ export function ProfileClient({
             </div>
           )}
 
-          {/* TAB 4: BOUTIQUE & EARNINGS HUB */}
+          {/* TAB 4: NOTIFICATION PREFERENCES (TASK 11.2) */}
+          {activeTab === "notifications" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-display text-xl font-bold text-gray-950">
+                    Notification Preferences
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Choose which booking milestones and styling alerts you wish to receive.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isSavingPrefs}
+                  onClick={() => handleSaveNotificationPrefs()}
+                  className="inline-flex items-center gap-2 rounded-xl bg-rose-900 hover:bg-rose-950 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer self-start sm:self-auto"
+                >
+                  {isSavingPrefs ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Save size={13} />
+                  )}
+                  <span>{isSavingPrefs ? "Saving..." : "Save Preferences"}</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. Email Booking Updates */}
+                <div className="rounded-2xl border border-stone-200 bg-stone-50/50 p-5 flex items-start justify-between gap-4 transition-colors hover:bg-white hover:border-rose-200 shadow-2xs">
+                  <div className="flex items-start gap-3.5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-800">
+                      <Mail size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">
+                        Email Booking Updates
+                      </h4>
+                      <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                        Receive confirmation receipts, doorstep trial schedules, and return pickup reminders via email.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleNotificationPref("email_bookings")}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      notificationPrefs.email_bookings ? "bg-rose-900" : "bg-stone-300"
+                    }`}
+                    role="switch"
+                    aria-checked={notificationPrefs.email_bookings}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        notificationPrefs.email_bookings ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* 2. SMS Delivery Alerts */}
+                <div className="rounded-2xl border border-stone-200 bg-stone-50/50 p-5 flex items-start justify-between gap-4 transition-colors hover:bg-white hover:border-rose-200 shadow-2xs">
+                  <div className="flex items-start gap-3.5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-800">
+                      <Smartphone size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">
+                        SMS Delivery Alerts
+                      </h4>
+                      <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                        Real-time SMS alerts with courier delivery tracking links and outfit return pickup OTPs.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleNotificationPref("sms_alerts")}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      notificationPrefs.sms_alerts ? "bg-rose-900" : "bg-stone-300"
+                    }`}
+                    role="switch"
+                    aria-checked={notificationPrefs.sms_alerts}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        notificationPrefs.sms_alerts ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* 3. WhatsApp Notifications */}
+                <div className="rounded-2xl border border-stone-200 bg-stone-50/50 p-5 flex items-start justify-between gap-4 transition-colors hover:bg-white hover:border-rose-200 shadow-2xs">
+                  <div className="flex items-start gap-3.5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">
+                      <MessageSquare size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">
+                        WhatsApp Notifications
+                      </h4>
+                      <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                        Get invoice PDFs, fitting notes, and quick concierge assistance directly on WhatsApp.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleNotificationPref("whatsapp_updates")}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      notificationPrefs.whatsapp_updates ? "bg-rose-900" : "bg-stone-300"
+                    }`}
+                    role="switch"
+                    aria-checked={notificationPrefs.whatsapp_updates}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        notificationPrefs.whatsapp_updates ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* 4. Promotional & Style Drops */}
+                <div className="rounded-2xl border border-stone-200 bg-stone-50/50 p-5 flex items-start justify-between gap-4 transition-colors hover:bg-white hover:border-rose-200 shadow-2xs">
+                  <div className="flex items-start gap-3.5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-800">
+                      <Sparkles size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">
+                        Festive Deals &amp; New Arrivals
+                      </h4>
+                      <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                        Early bird access to Sabyasachi, Manish Malhotra drop alerts, and festive promo codes.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleNotificationPref("promotions")}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      notificationPrefs.promotions ? "bg-rose-900" : "bg-stone-300"
+                    }`}
+                    role="switch"
+                    aria-checked={notificationPrefs.promotions}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        notificationPrefs.promotions ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: BOUTIQUE & EARNINGS HUB */}
           {activeTab === "boutique" && (
             <div className="space-y-6">
               {profile.role === "customer" ? (
@@ -787,52 +1093,365 @@ export function ProfileClient({
             </div>
           )}
 
-          {/* TAB 5: SECURITY & SIGN OUT */}
+          {/* TAB 6: SECURITY, PASSWORD & ACCOUNT LIFECYCLE */}
           {activeTab === "security" && (
             <div className="space-y-6">
               <div>
                 <h2 className="font-display text-xl font-bold text-gray-950">
-                  Security & Session
+                  Security &amp; Login
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Manage your authenticated session and login security.
+                  Manage your authenticated session, password, and account security.
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 p-4.5 space-y-3 bg-gray-50/60">
-                <div className="flex items-center justify-between text-xs">
+              {/* 1. Active Session Card */}
+              <div className="rounded-2xl border border-gray-200 p-4.5 space-y-3 bg-gray-50/60 shadow-2xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div>
                     <p className="font-bold text-gray-900">Signed in as</p>
-                    <p className="text-gray-500">{profile.email}</p>
+                    <p className="text-gray-500 mt-0.5">{profile.email}</p>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                    <CheckCircle2 size={12} /> Active Session
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {isGoogleAccount && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-stone-700 bg-white border border-stone-200 shadow-2xs px-2.5 py-1 rounded-full">
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24">
+                          <path
+                            fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                          />
+                        </svg>
+                        Google Account
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                      <CheckCircle2 size={12} /> Active Session
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+              {/* 2. TASK 11.1: Change / Set Password Card */}
+              <div className="rounded-3xl border border-stone-200 bg-white p-6 sm:p-7 shadow-xs space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-rose-900">
+                    <KeyRound size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-base sm:text-lg font-bold text-gray-950">
+                      {hasPasswordAccount ? "Change Password" : "Set Account Password"}
+                    </h3>
+                    <p className="text-xs text-stone-500">
+                      {hasPasswordAccount
+                        ? "Ensure your account uses a secure password of at least 8 characters."
+                        : "You signed in with Google. Set a password below to also log in with email directly."}
+                    </p>
+                  </div>
+                </div>
+
+                {!hasPasswordAccount && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900 flex items-start gap-3">
+                    <Sparkles size={16} className="text-amber-700 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      <strong>Google Login Active:</strong> You currently log in with one click via Google. Setting a password below allows you to sign in with <strong>both Google and Email/Password</strong> on any device without losing your Google login.
+                    </p>
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePassword} className="space-y-4 max-w-xl">
+                  {/* Current Password — Only shown if account already has an existing password */}
+                  {hasPasswordAccount && (
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Current Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showCurrentPassword ? "text" : "password"}
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          placeholder="Enter your existing password"
+                          required
+                          className="w-full rounded-xl border border-stone-200 bg-stone-50/60 px-3.5 py-2.5 pr-10 text-xs text-stone-900 placeholder:text-stone-400 focus:border-rose-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                          aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
+                        >
+                          {showCurrentPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* New Password */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-stone-700">
+                          {hasPasswordAccount ? "New Password" : "Create Password"}
+                        </label>
+                        <span className="text-[10px] text-stone-400">Min 8 chars</span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="At least 8 characters"
+                          required
+                          minLength={8}
+                          className="w-full rounded-xl border border-stone-200 bg-stone-50/60 px-3.5 py-2.5 pr-10 text-xs text-stone-900 placeholder:text-stone-400 focus:border-rose-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                          aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                        >
+                          {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-stone-700">
+                          Confirm Password
+                        </label>
+                        {confirmPassword && (
+                          <span
+                            className={`text-[10px] font-semibold ${
+                              newPassword === confirmPassword
+                                ? "text-emerald-600"
+                                : "text-rose-600"
+                            }`}
+                          >
+                            {newPassword === confirmPassword
+                              ? "Passwords match ✓"
+                              : "Passwords do not match"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Re-enter password"
+                          required
+                          minLength={8}
+                          className="w-full rounded-xl border border-stone-200 bg-stone-50/60 px-3.5 py-2.5 pr-10 text-xs text-stone-900 placeholder:text-stone-400 focus:border-rose-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                          aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                        >
+                          {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={
+                        isChangingPassword ||
+                        !newPassword ||
+                        newPassword.length < 8 ||
+                        newPassword !== confirmPassword ||
+                        (hasPasswordAccount && !currentPassword)
+                      }
+                      className="inline-flex items-center gap-2 rounded-xl bg-rose-900 hover:bg-rose-950 px-5 py-2.5 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      {isChangingPassword ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Lock size={14} />
+                      )}
+                      <span>
+                        {isChangingPassword
+                          ? hasPasswordAccount
+                            ? "Updating Password..."
+                            : "Setting Password..."
+                          : hasPasswordAccount
+                          ? "Update Password"
+                          : "Set Account Password"}
+                      </span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* 3. Sign Out */}
+              <div className="rounded-2xl border border-gray-200 p-5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
                 <div>
-                  <h4 className="text-xs font-bold text-gray-900">Sign Out</h4>
-                  <p className="text-[11px] text-gray-500">
-                    Sign out of your ShaadiRent account on this device.
+                  <h4 className="text-xs font-bold text-gray-900">Sign Out of Account</h4>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    End your active authenticated session on this browser device.
                   </p>
                 </div>
 
                 <form action={signOut}>
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 px-4 py-2 text-xs font-bold text-rose-800 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 px-4 py-2 text-xs font-bold text-stone-700 transition-colors cursor-pointer"
                   >
                     <LogOut size={14} />
                     <span>Sign Out</span>
                   </button>
                 </form>
               </div>
+
+              {/* 4. TASK 11.3: Danger Zone / Delete Account */}
+              <div className="rounded-3xl border border-rose-200/90 bg-rose-50/40 p-6 sm:p-7 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle size={16} className="text-rose-700" />
+                      <h3 className="font-display text-base font-bold text-rose-950">
+                        Danger Zone
+                      </h3>
+                    </div>
+                    <p className="text-xs text-stone-600 leading-relaxed max-w-xl">
+                      Permanently delete your account, booking history, measurements, and boutique listings. Once deleted, this account cannot be recovered.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteConfirmText("");
+                      setDeleteModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-300 bg-white hover:bg-rose-100/80 px-4 py-2.5 text-xs font-bold text-rose-800 transition-colors shrink-0 cursor-pointer shadow-2xs self-start sm:self-auto"
+                  >
+                    <Trash2 size={14} className="text-rose-700" />
+                    <span>Delete Account</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* ── Delete Account Security Confirmation Modal (TASK 11.3) ──────────── */}
+      {deleteModalOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4"
+          >
+            {/* Backdrop */}
+            <div
+              onClick={() => !isDeletingAccount && setDeleteModalOpen(false)}
+              className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs transition-opacity"
+              aria-hidden="true"
+            />
+
+            {/* Modal Dialog */}
+            <div className="relative w-full max-w-md rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-rose-100 z-10 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center gap-3.5 mb-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
+                  <Trash2 size={24} />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-stone-950 leading-tight">
+                    Delete ShaadiRent Account?
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    This action is permanent and cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              {activeBookingsCount > 0 ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 space-y-2 mb-6">
+                  <p className="font-bold flex items-center gap-1.5">
+                    <AlertCircle size={15} className="text-amber-700" />
+                    Active Outfit Rentals Detected
+                  </p>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    You currently have <strong>{activeBookingsCount} active rental {activeBookingsCount === 1 ? "booking" : "bookings"}</strong>. You must complete or return your designer garments before your account can be closed.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4 mb-6 text-xs text-stone-600">
+                  <p>By deleting your account:</p>
+                  <ul className="space-y-1.5 list-disc pl-5 text-stone-500 text-[11px]">
+                    <li>All personal profile and measurement data will be erased.</li>
+                    <li>Your order history and invoices will be deleted.</li>
+                    <li>Saved wishlist items and boutique listings will be removed.</li>
+                  </ul>
+
+                  <div className="pt-2">
+                    <label className="block font-semibold text-stone-800 mb-1.5">
+                      To confirm, type <span className="font-mono font-bold text-rose-900">DELETE</span> below:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Type DELETE"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      disabled={isDeletingAccount}
+                      className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-xs font-mono text-stone-900 focus:border-rose-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2.5 justify-end pt-3 border-t border-stone-100">
+                <button
+                  type="button"
+                  disabled={isDeletingAccount}
+                  onClick={() => setDeleteModalOpen(false)}
+                  className="rounded-xl border border-stone-200 px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    isDeletingAccount ||
+                    activeBookingsCount > 0 ||
+                    deleteConfirmText.trim() !== "DELETE"
+                  }
+                  onClick={handleDeleteAccount}
+                  className="inline-flex items-center gap-2 rounded-xl bg-rose-700 hover:bg-rose-800 px-5 py-2 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-40 cursor-pointer"
+                >
+                  {isDeletingAccount ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={13} />
+                  )}
+                  <span>{isDeletingAccount ? "Deleting..." : "Permanently Delete"}</span>
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

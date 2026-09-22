@@ -29,10 +29,20 @@ export default async function AccountPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, email, phone, avatar_url, role, city, district, state, verification_status, created_at"
+      "id, full_name, email, phone, avatar_url, role, city, district, state, verification_status, notification_prefs, created_at"
     )
     .eq("id", user.id)
     .single();
+
+  const providers = (user.app_metadata?.providers as string[]) ?? [
+    user.app_metadata?.provider ?? "email",
+  ];
+  const hasPassword =
+    providers.includes("email") ||
+    (user.identities?.some((i) => i.provider === "email") ?? false);
+  const authProvider =
+    (user.app_metadata?.provider as string | undefined) ??
+    (providers[0] || "email");
 
   const profileData: ProfileData = {
     id: user.id,
@@ -60,6 +70,16 @@ export default async function AccountPage() {
         | "verified"
         | "rejected"
         | undefined) ?? "pending",
+    notification_prefs:
+      (profile?.notification_prefs as any) ??
+      (user.user_metadata?.notification_prefs as any) ?? {
+        email_bookings: true,
+        sms_alerts: true,
+        whatsapp_updates: true,
+        promotions: false,
+      },
+    auth_provider: authProvider,
+    has_password: hasPassword,
     created_at:
       profile?.created_at ?? user.created_at ?? new Date().toISOString(),
   };

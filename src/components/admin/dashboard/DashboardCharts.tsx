@@ -24,9 +24,9 @@ interface DashboardChartsProps {
   newUsersThisMonth: number;
 
   // Sparklines
-  bookingsByDay: number[]; // last 30 days
+  bookingsByDay: number[]; // based on selected range
   bookingLabels: string[];
-  revenueByDay: { label: string; value: number }[]; // last 14 days
+  revenueByDay: { label: string; value: number }[]; // based on selected range
 
   // Donut
   bookingStatusBreakdown: { label: string; value: number; color: string }[];
@@ -37,12 +37,16 @@ interface DashboardChartsProps {
   // Trends
   bookingsTrend: number | null;
   revenueTrend: number | null;
+
+  // Selected Range
+  range?: string;
+  rangeLabel?: string;
 }
 
 function formatINR(v: number) {
   if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
   if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
-  return `₹${v}`;
+  return `₹${v.toLocaleString("en-IN")}`;
 }
 
 export function DashboardCharts({
@@ -59,7 +63,13 @@ export function DashboardCharts({
   recentBookings,
   bookingsTrend,
   revenueTrend,
+  range = "30d",
+  rangeLabel = "Last 30 Days",
 }: DashboardChartsProps) {
+  const bookingsChartTitle = `Bookings — ${rangeLabel}`;
+  const revenueChartTitle = `Revenue — ${rangeLabel}`;
+  const trendLabel = range === "all" ? "All time" : "vs prev period";
+
   return (
     <div className="space-y-6">
       {/* ── KPI Cards ───────────────────────────────────────────── */}
@@ -93,7 +103,7 @@ export function DashboardCharts({
           trendLabel="In catalog"
         />
         <StatCard
-          title="Total Bookings"
+          title="Period Bookings"
           value={totalBookingsCount}
           icon={CalendarCheck}
           iconColor="#be123c"
@@ -102,11 +112,11 @@ export function DashboardCharts({
           sparklineData={bookingsByDay}
           sparklineColor="#be123c"
           trend={bookingsTrend}
-          trendLabel="vs last month"
+          trendLabel={trendLabel}
         />
         <StatCard
-          title="Platform Revenue"
-          value={`₹${totalRevenue}`}
+          title="Period Revenue"
+          value={formatINR(totalRevenue)}
           icon={CreditCard}
           iconColor="#7c3aed"
           iconBg="#f5f3ff"
@@ -114,7 +124,7 @@ export function DashboardCharts({
           sparklineData={revenueByDay.map((d) => d.value)}
           sparklineColor="#7c3aed"
           trend={revenueTrend}
-          trendLabel="vs last month"
+          trendLabel={trendLabel}
         />
         <StatCard
           title="New Users"
@@ -132,8 +142,8 @@ export function DashboardCharts({
         {/* Bookings trend chart */}
         <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-sm">
           <div className="mb-4">
-            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">Bookings — Last 30 Days</h3>
-            <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Daily new bookings</p>
+            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">{bookingsChartTitle}</h3>
+            <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">New bookings in period</p>
           </div>
           <MiniLineChart
             data={bookingsByDay}
@@ -147,8 +157,8 @@ export function DashboardCharts({
         {/* Revenue bar chart */}
         <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-sm">
           <div className="mb-4">
-            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">Revenue — Last 14 Days</h3>
-            <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Daily confirmed payments (₹)</p>
+            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">{revenueChartTitle}</h3>
+            <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Confirmed payment revenue (₹)</p>
           </div>
           <BarChart
             data={revenueByDay}

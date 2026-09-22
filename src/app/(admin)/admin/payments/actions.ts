@@ -341,3 +341,100 @@ export async function releaseEscrow(
     return { success: false, error: msg };
   }
 }
+
+export interface RecordCashPaymentResult {
+  success: boolean;
+  error?: string;
+  paymentId?: string;
+}
+
+/**
+ * Records an offline / cash payment collected by delivery boy and verified by admin.
+ * Inserts a record in payments table (provider='cash'), updates booking payment_status='paid',
+ * and logs an event in booking_events.
+ */
+export async function recordCashPayment(
+  bookingId: string,
+  amount?: number,
+  notes?: string
+): Promise<RecordCashPaymentResult> {
+  try {
+    const user = await assertAdmin();
+    const admin = createAdminClient();
+
+    if (!bookingId) {
+      return { success: false, error: "Booking ID is required." };
+    }
+
+    // 1. Fetch booking
+    const { data: booking, error: fetchErr } = await admin
+      .from("bookings")
+      .select("id, booking_number, total_amount, payment_status, status")
+      .eq("id", bookingId)
+      .single();
+
+    if (fetchErr || !booking) {
+      return { success: false, error: "Booking not found." };
+    }
+
+    const paymentAmount = amount && amount > 0 ? amount : booking.total_amount;
+
+    // 2. Insert payment record into payments table
+    const { data: payment, error: insertErr } = await admin
+      .from("payments")
+      .insert({
+        booking_id: bookingId,
+        amount: paymentAmount,
+        currency: "INR",
+        provider: "cash",
+        status: "successful",
+        metadata: {
+          payment_mode: "cash_on_delivery",
+          collected_by: "delivery_boy",
+          confirmed_by: user.id,
+          notes: notes?.trim() || "Cash collected by delivery boy and confirmed by Admin.",
+        },
+      })
+      .select("id")
+      .single();
+
+    if (insertErr || !payment) {
+      console.error("Failed to insert cash payment:", insertErr);
+      return { success: false, error: insertErr?.message || "Failed to record payment." };
+    }
+
+    // 3. Update booking payment_status to 'paid'
+    const { error: updateErr } = await admin
+      .from("bookings")
+      .update({
+        payment_status: "paid",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", bookingId);
+
+    if (updateErr) {
+      console.error("Failed to update booking payment_status:", updateErr);
+      return { success: false, error: updateErr.message };
+    }
+
+    // 4. Log in booking_events
+    await admin.from("booking_events").insert({
+      booking_id: bookingId,
+      status: "payment_received",
+      note: `Cash payment of ₹${paymentAmount.toLocaleString("en-IN")} collected by delivery boy and confirmed by Admin.`,
+      created_by: user.id,
+    });
+
+    // 5. Revalidate paths
+    revalidatePath("/admin/payments");
+    revalidatePath("/admin/bookings");
+    revalidatePath("/admin");
+    revalidatePath(`/bookings/${bookingId}`);
+
+    return { success: true, paymentId: payment.id };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
+    return { success: false, error: msg };
+  }
+}
+

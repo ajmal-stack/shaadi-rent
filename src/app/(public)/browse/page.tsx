@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { ChevronRight, PackageOpen, ArrowLeft, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { BrowseFilters } from "@/components/browse/BrowseFilters";
 import { BrowseSort } from "@/components/browse/BrowseSort";
 import { BrowseSearchBar } from "@/components/browse/BrowseSearchBar";
@@ -27,6 +28,8 @@ interface BrowsePageProps {
     eventDate?: string;
     sort?: string;
     page?: string;
+    ownerId?: string;
+    ownerName?: string;
   }>;
 }
 
@@ -84,6 +87,8 @@ async function getAvailableCities(supabase: any): Promise<string[]> {
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const params = await searchParams;
   const q = params.q?.trim() || "";
+  const ownerId = params.ownerId?.trim() || "";
+  const ownerName = params.ownerName?.trim() || "";
   const category = params.category || "";
   const gender = params.gender || "all";
   const minPrice = params.minPrice || "";
@@ -93,6 +98,24 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const eventDate = params.eventDate || "";
   const sort = params.sort || "recommended";
   const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
+
+  // Resolve display owner name if ownerId is given without ownerName
+  let displayOwnerName = ownerName;
+  if (ownerId && !displayOwnerName) {
+    try {
+      const admin = createAdminClient();
+      const { data: ownerProf } = await admin
+        .from("profiles")
+        .select("full_name")
+        .eq("id", ownerId)
+        .maybeSingle();
+      if (ownerProf?.full_name) {
+        displayOwnerName = ownerProf.full_name;
+      }
+    } catch (err) {
+      console.error("[BrowsePage] Error resolving owner profile name:", err);
+    }
+  }
 
   const supabase = await createClient();
 
@@ -176,16 +199,42 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     .eq("status", "published")
     .eq("verification_status", "approved");
 
+  // Specific owner filter
+  if (ownerId) {
+    query = query.eq("owner_id", ownerId);
+  }
+
   // Filter out outfits with date conflicts (TASK 10.1)
   if (unavailableOutfitIds.length > 0) {
     query = query.not("id", "in", `(${unavailableOutfitIds.join(",")})`);
   }
 
-  // Search filter
+  // Search filter (searches title, brand, description, AND matching owner names)
   if (q) {
-    query = query.or(
-      `title.ilike.%${q}%,brand.ilike.%${q}%,description.ilike.%${q}%`
-    );
+    let matchingOwnerIds: string[] = [];
+    try {
+      const admin = createAdminClient();
+      const { data: matchedProfiles } = await admin
+        .from("profiles")
+        .select("id")
+        .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
+        .limit(20);
+      if (matchedProfiles && matchedProfiles.length > 0) {
+        matchingOwnerIds = matchedProfiles.map((p: any) => p.id);
+      }
+    } catch (err) {
+      console.error("[BrowsePage] Error searching owners for query:", err);
+    }
+
+    if (matchingOwnerIds.length > 0) {
+      query = query.or(
+        `title.ilike.%${q}%,brand.ilike.%${q}%,description.ilike.%${q}%,owner_id.in.(${matchingOwnerIds.join(",")})`
+      );
+    } else {
+      query = query.or(
+        `title.ilike.%${q}%,brand.ilike.%${q}%,description.ilike.%${q}%`
+      );
+    }
   }
 
   // Category filter
@@ -288,6 +337,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const createPageUrl = (pageNumber: number) => {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
+    if (ownerId) p.set("ownerId", ownerId);
+    if (ownerName) p.set("ownerName", ownerName);
     if (category) p.set("category", category);
     if (gender && gender !== "all") p.set("gender", gender);
     if (minPrice) p.set("minPrice", minPrice);
@@ -341,10 +392,14 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {/* Page Heading + Result Count */}
           <div className="text-center max-w-3xl mx-auto space-y-2">
             <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-stone-950">
-              Wedding Outfits for Your Special Day
+              {displayOwnerName
+                ? `${displayOwnerName}'s Wardrobe`
+                : "Wedding Outfits for Your Special Day"}
             </h1>
             <p className="text-xs sm:text-base text-stone-600">
-              Discover verified wedding outfits available for rent.
+              {displayOwnerName
+                ? `Discover verified wedding outfits listed by ${displayOwnerName}.`
+                : "Discover verified wedding outfits available for rent."}
             </p>
             <p className="text-xs text-stone-500 font-medium pt-1">
               Showing {total} {total === 1 ? "outfit" : "outfits"}
@@ -420,6 +475,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 <span className="font-semibold text-stone-950">
                   {total} {total === 1 ? "Outfit" : "Outfits"} Found
                 </span>
+                {displayOwnerName && (
+                  <span className="text-stone-500">
+                    by <strong className="text-rose-900">{displayOwnerName}</strong>
+                  </span>
+                )}
                 {selectedCategoryObj && (
                   <span className="text-stone-500">
                     in <strong className="text-rose-900">{selectedCategoryObj.name}</strong>
@@ -445,6 +505,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               location={location}
               eventDate={eventDate}
               query={q}
+              ownerId={ownerId}
+              ownerName={displayOwnerName}
             />
 
             {/* Outfits Grid or Empty State */}

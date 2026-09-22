@@ -93,6 +93,8 @@ export type Database = {
           district: string | null;
           state: string | null;
           verification_status: VerificationStatus;
+          notification_prefs: Json | null;
+          is_suspended: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -107,6 +109,8 @@ export type Database = {
           district?: string | null;
           state?: string | null;
           verification_status?: VerificationStatus;
+          notification_prefs?: Json | null;
+          is_suspended?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -121,6 +125,8 @@ export type Database = {
           district?: string | null;
           state?: string | null;
           verification_status?: VerificationStatus;
+          notification_prefs?: Json | null;
+          is_suspended?: boolean;
           updated_at?: string;
         };
         Relationships: [
@@ -706,6 +712,7 @@ export type Database = {
           notes: string | null;
           deduction_amount: number;
           created_by: string | null;
+          assigned_to: string | null;
           created_at: string;
         };
         Insert: {
@@ -716,6 +723,7 @@ export type Database = {
           notes?: string | null;
           deduction_amount?: number;
           created_by?: string | null;
+          assigned_to?: string | null;
           created_at?: string;
         };
         Update: {
@@ -726,6 +734,8 @@ export type Database = {
           notes?: string | null;
           deduction_amount?: number;
           created_by?: string | null;
+          assigned_to?: string | null;
+          created_at?: string;
         };
         Relationships: [
           {
@@ -737,6 +747,12 @@ export type Database = {
           {
             foreignKeyName: "inspection_reports_created_by_fkey";
             columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inspection_reports_assigned_to_fkey";
+            columns: ["assigned_to"];
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
@@ -1017,6 +1033,10 @@ export interface DeliveryAddress {
 }
 export type InspectionReport =
   Database["public"]["Tables"]["inspection_reports"]["Row"];
+export type InspectionReportInsert =
+  Database["public"]["Tables"]["inspection_reports"]["Insert"];
+export type InspectionReportUpdate =
+  Database["public"]["Tables"]["inspection_reports"]["Update"];
 
 // Insert / Update helpers
 export type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];

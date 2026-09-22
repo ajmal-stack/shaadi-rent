@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { X, RotateCcw, Calendar, MapPin, Tag, Sparkles, Loader2 } from "lucide-react";
+import { X, RotateCcw, Calendar, MapPin, Tag, Sparkles, Loader2, User } from "lucide-react";
 
 interface ActiveFilterBadgesProps {
   categoryName?: string;
@@ -13,6 +13,8 @@ interface ActiveFilterBadgesProps {
   location?: string;
   eventDate?: string;
   query?: string;
+  ownerId?: string;
+  ownerName?: string;
 }
 
 export function ActiveFilterBadges({
@@ -24,6 +26,8 @@ export function ActiveFilterBadges({
   location,
   eventDate,
   query,
+  ownerId,
+  ownerName,
 }: ActiveFilterBadgesProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -42,7 +46,7 @@ export function ActiveFilterBadges({
   // Reset optimistically removed badges when URL search params or props update
   useEffect(() => {
     setRemovedBadgeIds(new Set());
-  }, [categoryName, gender, minPrice, maxPrice, size, location, eventDate, query]);
+  }, [categoryName, gender, minPrice, maxPrice, size, location, eventDate, query, ownerId, ownerName]);
 
   const removeParam = (keys: string[], badgeId: string) => {
     if (!isMounted.current) return;
@@ -102,6 +106,16 @@ export function ActiveFilterBadges({
       label: "Search",
       value: `"${query}"`,
       onRemove: () => removeParam(["q"], "search"),
+    });
+  }
+
+  if (ownerName || ownerId) {
+    badges.push({
+      id: "owner",
+      label: "Owner",
+      value: ownerName || "Selected Wardrobe",
+      icon: <User size={11} className="text-rose-700" />,
+      onRemove: () => removeParam(["ownerId", "ownerName"], "owner"),
     });
   }
 

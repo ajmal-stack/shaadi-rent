@@ -34,7 +34,7 @@ export async function generateMetadata({
 
   const { data: outfit } = await supabase
     .from("outfits")
-    .select("title, description, brand, category:categories(name), images:outfit_images(storage_path, sort_order)")
+    .select("title, description, brand, color, category:categories(name, gender_type), images:outfit_images(storage_path, sort_order)")
     .eq("slug", slug)
     .eq("status", "published")
     .eq("verification_status", "approved")
@@ -52,16 +52,49 @@ export async function generateMetadata({
     outfit.description ||
     `Rent ${outfit.title} by ${outfit.brand || "designer"} for your wedding occasion. Delivered sanitized 48 hours early with free backup sizing.`;
 
-  const primaryImage = outfit.images?.[0]?.storage_path;
+  const sortedImages = (outfit.images || []).slice().sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const primaryImage = sortedImages[0]?.storage_path;
   const imageUrl = getOutfitImageUrl(primaryImage);
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://shaadirent.com";
+  const outfitUrl = `${siteUrl}/outfits/${slug}`;
 
   return {
     title,
     description,
+    keywords: [
+      outfit.title,
+      outfit.brand || "",
+      categoryName,
+      outfit.color || "",
+      "wedding outfit rental",
+      "bridal lehenga on rent",
+      "groom sherwani rental India",
+      "designer bridal wear",
+    ].filter(Boolean),
+    alternates: {
+      canonical: outfitUrl,
+    },
     openGraph: {
       title,
       description,
-      images: [{ url: imageUrl }],
+      url: outfitUrl,
+      siteName: "ShaadiRent",
+      locale: "en_IN",
+      type: "article",
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: outfit.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [imageUrl],
     },
   };
 }
@@ -154,8 +187,15 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
 
   const isOutfitWishlisted = wishlistedIds.includes(outfit.id);
 
+  // Extract primary image URL for action card & share preview
+  const sortedImages = (outfit.images || [])
+    .slice()
+    .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const primaryImage = sortedImages[0]?.storage_path;
+  const primaryImageUrl = getOutfitImageUrl(primaryImage);
+
   // Fetch similar outfits from the same category
-  const { data: similarOutfits } = await supabase
+  const { data: categorySimilarData } = await supabase
     .from("outfits")
     .select(
       `
@@ -191,6 +231,58 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
     .eq("verification_status", "approved")
     .neq("id", outfit.id)
     .limit(4);
+
+  let allSimilarOutfits = (categorySimilarData as unknown as OutfitCardData[]) ?? [];
+
+  // Smart backfill: if fewer than 4 outfits in this exact category, recommend outfits with same wearer/gender type
+  if (allSimilarOutfits.length < 4 && category?.gender_type) {
+    const existingIds = [outfit.id, ...allSimilarOutfits.map((o) => o.id)];
+    const needed = 4 - allSimilarOutfits.length;
+
+    const { data: fallbackData } = await supabase
+      .from("outfits")
+      .select(
+        `
+        id,
+        title,
+        slug,
+        brand,
+        rental_price,
+        purchase_price,
+        security_deposit,
+        size,
+        condition,
+        city,
+        state,
+        district,
+        verification_status,
+        category:categories!inner (
+          id,
+          name,
+          slug,
+          gender_type
+        ),
+        images:outfit_images (
+          id,
+          storage_path,
+          image_type,
+          sort_order
+        )
+      `
+      )
+      .eq("category.gender_type", category.gender_type)
+      .eq("status", "published")
+      .eq("verification_status", "approved")
+      .not("id", "in", `(${existingIds.join(",")})`)
+      .limit(needed);
+
+    if (fallbackData && fallbackData.length > 0) {
+      allSimilarOutfits = [
+        ...allSimilarOutfits,
+        ...(fallbackData as unknown as OutfitCardData[]),
+      ];
+    }
+  }
 
   return (
     <div className="min-h-screen bg-stone-50/50 py-8 sm:py-12 pb-24">
@@ -329,6 +421,7 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
                 city: outfit.city,
                 state: outfit.state,
                 categoryName: category?.name,
+                imageUrl: primaryImageUrl,
               }}
               availability={availability}
               initialWishlisted={isOutfitWishlisted}
@@ -338,7 +431,7 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
 
         {/* ── Similar Outfits in Same Category ── */}
         <SimilarOutfits
-          outfits={(similarOutfits as unknown as OutfitCardData[]) ?? []}
+          outfits={allSimilarOutfits}
           categoryName={category?.name}
           categorySlug={category?.slug}
           wishlistedIds={wishlistedIds}

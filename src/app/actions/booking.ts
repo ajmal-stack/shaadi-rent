@@ -22,21 +22,11 @@ export interface CreateBookingResult {
   error?: string;
 }
 
-/** Allowed customer-driven status transitions */
-const CUSTOMER_TRANSITIONS: Record<string, string> = {
-  delivered: "active",             // Customer confirms receipt
-  active: "return_scheduled",      // Customer requests return pickup
-};
+/** Customer status transitions — DISABLED: All changes now admin-only */
+const CUSTOMER_TRANSITIONS: Record<string, string> = {};
 
-/** Allowed owner-driven status transitions */
-const OWNER_TRANSITIONS: Record<string, string[]> = {
-  pending:          ["confirmed", "cancelled"],
-  confirmed:        ["pickup_scheduled", "cancelled"],
-  pickup_scheduled: ["out_for_delivery"],
-  out_for_delivery: ["delivered"],
-  return_scheduled: ["returned"],
-  returned:         ["inspection"],
-};
+/** Owner status transitions — DISABLED: All changes now admin-only */
+const OWNER_TRANSITIONS: Record<string, string[]> = {};
 
 // ── createBooking ──────────────────────────────────────────────────────────────
 
@@ -165,142 +155,29 @@ export async function createBooking(
   redirect(`/bookings/${newBooking.id}/confirmed`);
 }
 
-// ── updateBookingStatus (Customer) ─────────────────────────────────────────────
+// ── updateBookingStatus (Customer) — DISABLED ──────────────────────────────────
+// All booking status changes are now exclusively handled by Admin.
+// This function is kept for reference but always returns an error.
 
 export async function updateBookingStatus(
-  bookingId: string,
-  newStatus: string
+  _bookingId: string,
+  _newStatus: string
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authErr,
-  } = await supabase.auth.getUser();
-
-  if (authErr || !user) {
-    return { error: "Authentication required." };
-  }
-
-  const { data: booking, error: fetchErr } = await supabase
-    .from("bookings")
-    .select("id, status, renter_id")
-    .eq("id", bookingId)
-    .single();
-
-  if (fetchErr || !booking) {
-    return { error: "Booking not found." };
-  }
-
-  if (booking.renter_id !== user.id) {
-    return { error: "You are not authorised to update this booking." };
-  }
-
-  const allowedNext = CUSTOMER_TRANSITIONS[booking.status];
-  if (!allowedNext || allowedNext !== newStatus) {
-    return {
-      error: `Cannot transition from "${booking.status}" to "${newStatus}" as a customer.`,
-    };
-  }
-
-  const admin = createAdminClient();
-  const { error: updateErr } = await admin
-    .from("bookings")
-    .update({ status: newStatus as import("@/types/database").BookingStatus, updated_at: new Date().toISOString() })
-    .eq("id", bookingId);
-
-  if (updateErr) {
-    console.error("[updateBookingStatus] Error:", JSON.stringify(updateErr));
-    return { error: "Failed to update booking status. Please try again." };
-  }
-
-  await admin.from("booking_events").insert({
-    booking_id: bookingId,
-    status: newStatus,
-    note: `Status updated by customer: ${booking.status} -> ${newStatus}`,
-    created_by: user.id,
-  }).then(({ error }) => {
-    if (error) console.error("[updateBookingStatus] Event log error:", JSON.stringify(error));
-  });
-
-  return {};
+  return {
+    error: "Booking status changes are managed by ShaadiRent admin. Please contact support if you need assistance.",
+  };
 }
 
-// ── updateBookingStatusAsOwner ─────────────────────────────────────────────────
+// ── updateBookingStatusAsOwner — DISABLED ──────────────────────────────────────
+// All booking status changes are now exclusively handled by Admin.
+// This function is kept for reference but always returns an error.
 
-/**
- * Owner-driven status transitions:
- *   pending          -> confirmed | cancelled  (accept or reject)
- *   confirmed        -> cancelled              (cancel before dispatch)
- *   pickup_scheduled -> out_for_delivery       (hand over to delivery)
- *   return_scheduled -> returned               (confirm outfit received back)
- *   returned         -> inspection             (start post-return inspection)
- *
- * Admins bypass the transition allowlist and can set any status.
- */
 export async function updateBookingStatusAsOwner(
-  bookingId: string,
-  newStatus: string,
-  notes?: string
+  _bookingId: string,
+  _newStatus: string,
+  _notes?: string
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authErr,
-  } = await supabase.auth.getUser();
-
-  if (authErr || !user) return { error: "Authentication required." };
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  const isAdmin = profile?.role === "admin";
-  const isOwner = profile?.role === "owner";
-
-  if (!isAdmin && !isOwner) {
-    return { error: "Only owners or admins can perform this action." };
-  }
-
-  const { data: booking, error: fetchErr } = await supabase
-    .from("bookings")
-    .select("id, status, owner_id")
-    .eq("id", bookingId)
-    .single();
-
-  if (fetchErr || !booking) return { error: "Booking not found." };
-
-  if (!isAdmin && booking.owner_id !== user.id) {
-    return { error: "You are not the owner of this booking." };
-  }
-
-  const allowed = OWNER_TRANSITIONS[booking.status] ?? [];
-  if (!isAdmin && !allowed.includes(newStatus)) {
-    return { error: `Cannot transition from "${booking.status}" to "${newStatus}".` };
-  }
-
-  const admin = createAdminClient();
-
-  const { error: updateErr } = await admin
-    .from("bookings")
-    .update({
-      status: newStatus as import("@/types/database").BookingStatus,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", bookingId);
-
-  if (updateErr) {
-    console.error("[updateBookingStatusAsOwner]", JSON.stringify(updateErr));
-    return { error: "Failed to update booking status. Please try again." };
-  }
-
-  await admin.from("booking_events").insert({
-    booking_id: bookingId,
-    status: newStatus,
-    note: notes ?? `Owner action: ${booking.status} -> ${newStatus}`,
-    created_by: user.id,
-  });
-
-  return {};
+  return {
+    error: "Booking status changes are managed by ShaadiRent admin. Please contact support if you need assistance.",
+  };
 }

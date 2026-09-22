@@ -19,6 +19,7 @@ import { AvailabilityWindow } from "./OutfitAvailability";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { toggleWishlist } from "@/app/actions/wishlist";
 import { triggerWishlistFlyEffect } from "@/lib/utils/wishlistFlyAnimation";
+import { ShareModal } from "./ShareModal";
 
 interface OutfitActionCardProps {
   outfit: {
@@ -35,6 +36,7 @@ interface OutfitActionCardProps {
     city: string | null;
     state: string | null;
     categoryName?: string;
+    imageUrl?: string;
   };
   availability?: AvailabilityWindow[] | null;
   initialWishlisted?: boolean;
@@ -47,6 +49,7 @@ export function OutfitActionCard({
 }: OutfitActionCardProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(initialWishlisted);
   const [isWishlistPending, setIsWishlistPending] = useState(false);
@@ -210,21 +213,8 @@ export function OutfitActionCard({
     setIsModalOpen(true);
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: outfit.title,
-          url: window.location.href,
-        });
-      } catch {
-        // User cancelled
-      }
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    }
+  const handleShare = () => {
+    setIsShareModalOpen(true);
   };
 
   const formatCondition = (c: string) => {
@@ -449,6 +439,21 @@ export function OutfitActionCard({
         returnDateStr={returnDateStr}
         rentalStartDate={rentalStartDate}
         rentalEndDate={rentalEndDate}
+      />
+
+      {/* Social & Direct Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        outfit={{
+          title: outfit.title,
+          slug: outfit.slug,
+          brand: outfit.brand,
+          rental_price: outfit.rental_price,
+          imageUrl: outfit.imageUrl,
+          city: outfit.city,
+          state: outfit.state,
+        }}
       />
     </>
   );

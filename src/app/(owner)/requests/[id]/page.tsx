@@ -34,18 +34,18 @@ const STATUS_DISPLAY: Record<
   string,
   { label: string; color: string; bg: string; border: string; icon: React.ElementType }
 > = {
-  pending:          { label: "New Request",      color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200",  icon: Clock },
-  confirmed:        { label: "Confirmed",         color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200",   icon: CheckCircle2 },
-  pickup_scheduled: { label: "Pickup Scheduled", color: "text-indigo-700",  bg: "bg-indigo-50",  border: "border-indigo-200", icon: Calendar },
-  out_for_delivery: { label: "Out for Delivery", color: "text-sky-700",     bg: "bg-sky-50",     border: "border-sky-200",    icon: Truck },
-  delivered:        { label: "Delivered",         color: "text-teal-700",    bg: "bg-teal-50",    border: "border-teal-200",   icon: PackageCheck },
-  active:           { label: "Active Rental",     color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200",icon: Sparkles },
-  return_scheduled: { label: "Return Incoming",  color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200", icon: Calendar },
-  returned:         { label: "Returned",          color: "text-stone-600",   bg: "bg-stone-50",   border: "border-stone-200",  icon: PackageCheck },
-  inspection:       { label: "Inspection",        color: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-200", icon: ShieldCheck },
-  completed:        { label: "Completed",         color: "text-emerald-700", bg: "bg-emerald-100",border: "border-emerald-300",icon: CheckCircle2 },
-  cancelled:        { label: "Cancelled",         color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-200",   icon: XCircle },
-  disputed:         { label: "Disputed",          color: "text-orange-800",  bg: "bg-orange-50",  border: "border-orange-200", icon: AlertCircle },
+  pending: { label: "New Request", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", icon: Clock },
+  confirmed: { label: "Confirmed", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", icon: CheckCircle2 },
+  pickup_scheduled: { label: "Pickup Scheduled", color: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-200", icon: Calendar },
+  out_for_delivery: { label: "Out for Delivery", color: "text-sky-700", bg: "bg-sky-50", border: "border-sky-200", icon: Truck },
+  delivered: { label: "Delivered", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-200", icon: PackageCheck },
+  active: { label: "Active Rental", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", icon: Sparkles },
+  return_scheduled: { label: "Return Incoming", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200", icon: Calendar },
+  returned: { label: "Returned", color: "text-stone-600", bg: "bg-stone-50", border: "border-stone-200", icon: PackageCheck },
+  inspection: { label: "Inspection", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", icon: ShieldCheck },
+  completed: { label: "Completed", color: "text-emerald-700", bg: "bg-emerald-100", border: "border-emerald-300", icon: CheckCircle2 },
+  cancelled: { label: "Cancelled", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200", icon: XCircle },
+  disputed: { label: "Disputed", color: "text-orange-800", bg: "bg-orange-50", border: "border-orange-200", icon: AlertCircle },
 };
 
 function fmtDate(iso: string) {
@@ -132,8 +132,6 @@ export default async function OwnerRequestDetailPage({ params }: Props) {
   const StatusIcon = statusInfo.icon;
 
   const isTerminal = ["completed", "cancelled"].includes(booking.status);
-  const OWNER_ACTION_STATUSES = ["pending", "confirmed", "pickup_scheduled", "out_for_delivery", "return_scheduled", "returned"];
-  const hasOwnerAction = OWNER_ACTION_STATUSES.includes(booking.status);
 
   return (
     <div className="min-h-screen bg-stone-50/50 py-8 sm:py-12">
@@ -166,8 +164,8 @@ export default async function OwnerRequestDetailPage({ params }: Props) {
           </span>
         </div>
 
-        {/* ── Owner Action Banner ── */}
-        {hasOwnerAction && !isTerminal && (
+        {/* ── Owner Status Banner ── */}
+        {!isTerminal && (
           <OwnerActions
             bookingId={booking.id}
             status={booking.status as BookingStatus}
@@ -302,11 +300,10 @@ export default async function OwnerRequestDetailPage({ params }: Props) {
           <div className="flex items-center justify-between pt-1">
             <span className="text-stone-500">Payment Status</span>
             <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${
-                booking.payment_status === "paid"
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                  : "bg-amber-50 text-amber-800 border-amber-200"
-              }`}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${booking.payment_status === "paid"
+                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                : "bg-amber-50 text-amber-800 border-amber-200"
+                }`}
             >
               {booking.payment_status === "paid" ? "Paid" : "Collect at Delivery"}
             </span>
