@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { MobileRequestsView } from "@/components/owner/MobileRequestsView";
 
 export const metadata: Metadata = {
   title: "Booking Requests — ShaadiRent Owner",
@@ -113,81 +114,89 @@ export default async function OwnerRequestsPage() {
   const pastBookings   = allBookings.filter((b) => TERMINAL_STATUSES.includes(b.status));
 
   return (
-    <div className="min-h-screen bg-stone-50/50 py-10 sm:py-14">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 space-y-8">
-
-        {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200/80 bg-rose-50 px-3 py-0.5 text-xs font-semibold text-rose-800">
-              <CalendarCheck size={13} className="text-rose-700" />
-              My Outfit Bookings
-            </span>
-            <h1 className="mt-2 font-display text-2xl sm:text-3xl font-bold tracking-tight text-stone-900">
-              Booking Requests
-            </h1>
-            <p className="mt-1 text-sm text-stone-500">
-              {allBookings.length > 0
-                ? `${allBookings.length} booking${allBookings.length !== 1 ? "s" : ""} · ${actionRequired.length} need${actionRequired.length !== 1 ? "" : "s"} action`
-                : "Manage bookings for your listed outfits."}
-            </p>
-          </div>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 self-start rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors"
-          >
-            &larr; Dashboard
-          </Link>
-        </div>
-
-        {/* ── Empty state ── */}
-        {allBookings.length === 0 && (
-          <div className="rounded-3xl border border-dashed border-rose-200/80 bg-white p-16 text-center shadow-sm">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-700">
-              <CalendarCheck size={30} />
-            </div>
-            <h3 className="mt-4 font-display text-xl font-bold text-stone-900">No Bookings Yet</h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-stone-500">
-              Bookings for your outfits will appear here as customers start requesting them.
-            </p>
-          </div>
-        )}
-
-        {/* ── Action Required ── */}
-        {actionRequired.length > 0 && (
-          <BookingSection
-            title="Action Required"
-            titleColor="text-rose-800"
-            badgeColor="bg-rose-100 text-rose-800 border-rose-200"
-            count={actionRequired.length}
-            bookings={actionRequired}
-          />
-        )}
-
-        {/* ── Active ── */}
-        {activeBookings.length > 0 && (
-          <BookingSection
-            title="Active Bookings"
-            titleColor="text-stone-700"
-            badgeColor="bg-blue-50 text-blue-800 border-blue-200"
-            count={activeBookings.length}
-            bookings={activeBookings}
-          />
-        )}
-
-        {/* ── Past ── */}
-        {pastBookings.length > 0 && (
-          <BookingSection
-            title="Completed &amp; Cancelled"
-            titleColor="text-stone-500"
-            badgeColor="bg-stone-100 text-stone-600 border-stone-200"
-            count={pastBookings.length}
-            bookings={pastBookings}
-            muted
-          />
-        )}
+    <>
+      {/* ── Mobile View (< md) ── */}
+      <div className="block md:hidden">
+        <MobileRequestsView bookings={allBookings} />
       </div>
-    </div>
+
+      {/* ── Desktop View (>= md) ── */}
+      <div className="hidden md:block min-h-screen bg-stone-50/50 py-10 sm:py-14">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 space-y-8">
+
+          {/* ── Header ── */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200/80 bg-rose-50 px-3 py-0.5 text-xs font-semibold text-rose-800">
+                <CalendarCheck size={13} className="text-rose-700" />
+                My Outfit Bookings
+              </span>
+              <h1 className="mt-2 font-display text-2xl sm:text-3xl font-bold tracking-tight text-stone-900">
+                Booking Requests
+              </h1>
+              <p className="mt-1 text-sm text-stone-500">
+                {allBookings.length > 0
+                  ? `${allBookings.length} booking${allBookings.length !== 1 ? "s" : ""} · ${actionRequired.length} need${actionRequired.length !== 1 ? "" : "s"} action`
+                  : "Manage bookings for your listed outfits."}
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 self-start rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors"
+            >
+              &larr; Dashboard
+            </Link>
+          </div>
+
+          {/* ── Empty state ── */}
+          {allBookings.length === 0 && (
+            <div className="rounded-3xl border border-dashed border-rose-200/80 bg-white p-16 text-center shadow-sm">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-700">
+                <CalendarCheck size={30} />
+              </div>
+              <h3 className="mt-4 font-display text-xl font-bold text-stone-900">No Bookings Yet</h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-stone-500">
+                Bookings for your outfits will appear here as customers start requesting them.
+              </p>
+            </div>
+          )}
+
+          {/* ── Action Required ── */}
+          {actionRequired.length > 0 && (
+            <BookingSection
+              title="Action Required"
+              titleColor="text-rose-800"
+              badgeColor="bg-rose-100 text-rose-800 border-rose-200"
+              count={actionRequired.length}
+              bookings={actionRequired}
+            />
+          )}
+
+          {/* ── Active ── */}
+          {activeBookings.length > 0 && (
+            <BookingSection
+              title="Active Bookings"
+              titleColor="text-stone-700"
+              badgeColor="bg-blue-50 text-blue-800 border-blue-200"
+              count={activeBookings.length}
+              bookings={activeBookings}
+            />
+          )}
+
+          {/* ── Past ── */}
+          {pastBookings.length > 0 && (
+            <BookingSection
+              title="Completed &amp; Cancelled"
+              titleColor="text-stone-500"
+              badgeColor="bg-stone-100 text-stone-600 border-stone-200"
+              count={pastBookings.length}
+              bookings={pastBookings}
+              muted
+            />
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 

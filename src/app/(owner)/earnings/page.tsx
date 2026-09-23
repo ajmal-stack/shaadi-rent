@@ -8,6 +8,7 @@ import {
   type EarningTransaction,
   type EarningsSummary,
 } from "@/components/owner/EarningsClient";
+import { MobileEarningsView } from "@/components/owner/MobileEarningsView";
 import { Wallet } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -194,33 +195,41 @@ export default async function OwnerEarningsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50/50 py-8 sm:py-10">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 space-y-6">
-        {/* ── Page Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-700 to-stone-900 text-white shadow-sm">
-              <Wallet size={20} />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl font-bold text-stone-900">
-                Earnings &amp; Payouts
-              </h1>
-              <p className="text-xs text-stone-500 mt-0.5">
-                Financial overview, platform commission deductions, and payout history
-              </p>
-            </div>
-          </div>
-
-          <div className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-stone-700 shadow-2xs">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Escrow Payout Buffer: {escrowBufferDays} Days</span>
-          </div>
-        </div>
-
-        {/* ── Client Component with Summary Cards, Search, Filters & Transactions ── */}
-        <EarningsClient transactions={transactions} summary={summary} />
+    <>
+      {/* ── Mobile Native View (< md) ── */}
+      <div className="block md:hidden">
+        <MobileEarningsView transactions={transactions} summary={summary} />
       </div>
-    </div>
+
+      {/* ── Desktop View (>= md) ── */}
+      <div className="hidden md:block min-h-screen bg-stone-50/50 py-8 sm:py-10">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 space-y-6">
+          {/* ── Page Header ── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-700 to-stone-900 text-white shadow-sm">
+                <Wallet size={20} />
+              </div>
+              <div>
+                <h1 className="font-display text-2xl font-bold text-stone-900">
+                  Earnings &amp; Payouts
+                </h1>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Financial overview, platform commission deductions, and payout history
+                </p>
+              </div>
+            </div>
+
+            <div className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-stone-700 shadow-2xs">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Escrow Payout Buffer: {escrowBufferDays} Days</span>
+            </div>
+          </div>
+
+          {/* ── Client Component with Summary Cards, Search, Filters & Transactions ── */}
+          <EarningsClient transactions={transactions} summary={summary} />
+        </div>
+      </div>
+    </>
   );
 }

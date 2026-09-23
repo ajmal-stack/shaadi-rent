@@ -21,6 +21,7 @@ import {
   CalendarCheck,
   Wallet,
 } from "lucide-react";
+import { MobileOwnerDashboard } from "@/components/owner/MobileOwnerDashboard";
 
 export const metadata: Metadata = {
   title: "Owner Dashboard — ShaadiRent",
@@ -124,8 +125,24 @@ export default async function OwnerDashboardPage() {
   const firstName = profile?.full_name?.split(" ")[0] ?? "Owner";
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50/30 via-rose-50/20 to-white pb-24">
-      {/* ── Page header ─────────────────────────────────────────────────── */}
+    <>
+      {/* ── MOBILE VIEW (< md) ── Superapp Boutique Hub ── */}
+      <div className="block md:hidden">
+        <MobileOwnerDashboard
+          firstName={firstName}
+          profile={profile}
+          outfits={allOutfits as any}
+          totalOutfits={totalOutfits}
+          publishedCount={publishedCount}
+          pendingCount={pendingCount}
+          draftCount={draftCount}
+          potentialEarnings={potentialEarnings}
+        />
+      </div>
+
+      {/* ── DESKTOP & TABLET VIEW (≥ md) ── Wide Grid Layout ── */}
+      <div className="hidden md:block min-h-screen bg-gradient-to-b from-amber-50/30 via-rose-50/20 to-white pb-24">
+        {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="border-b border-rose-100/70 bg-white/95 backdrop-blur-md sticky top-0 z-10 shadow-xs">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -477,5 +494,6 @@ export default async function OwnerDashboardPage() {
         </div>
       </div>
     </div>
-  );
+  </>
+);
 }

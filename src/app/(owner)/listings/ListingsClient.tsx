@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { pauseListing, unpauseListing, archiveListing, unarchiveListing, updateListing } from "./actions";
 import type { UpdateListingInput } from "./actions";
+import { MobileListingsView } from "@/components/owner/MobileListingsView";
 
 // ── Status config ──────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<
@@ -219,7 +220,23 @@ export function ListingsClient({ outfits }: ListingsClientProps) {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* ── MOBILE VIEW (< md) ── Superapp Inventory Hub ── */}
+      <div className="block md:hidden">
+        <MobileListingsView
+          items={items}
+          editingId={editingId}
+          setEditingId={setEditingId}
+          archiveId={archiveId}
+          setArchiveId={setArchiveId}
+          actionLoading={actionLoading}
+          handlePause={handlePause}
+          handleUnpause={handleUnpause}
+          handleUnarchive={handleUnarchive}
+        />
+      </div>
+
+      {/* ── DESKTOP & TABLET VIEW (≥ md) ── Wide Grid Layout ── */}
+      <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-5">
         {items.map((outfit) => {
           const status = STATUS_CONFIG[outfit.status] ?? STATUS_CONFIG.draft;
           const StatusIcon = status.icon;

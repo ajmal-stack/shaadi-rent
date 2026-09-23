@@ -43,6 +43,7 @@ import {
   type NotificationPreferences,
 } from "@/app/(customer)/account/actions";
 import { signOut } from "@/app/(public)/auth/actions";
+import { MobileProfileView } from "./MobileProfileView";
 
 export interface ProfileData {
   id: string;
@@ -318,8 +319,63 @@ export function ProfileClient({
   }
 
   return (
-    <div className="min-h-screen bg-stone-50/60 pb-20 pt-4 sm:pt-6">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-6">
+    <>
+      {/* ── MOBILE VIEW (< md) ── Screenshot-inspired Superapp Hub Layout ── */}
+      <div className="block md:hidden">
+        <MobileProfileView
+          profile={profile}
+          setProfile={setProfile}
+          bookings={bookings}
+          outfitCount={outfitCount}
+          initials={initials}
+          memberSince={memberSince}
+          activeBookingsCount={activeBookingsCount}
+          fullName={fullName}
+          setFullName={setFullName}
+          phone={phone}
+          setPhone={setPhone}
+          city={city}
+          setCity={setCity}
+          district={district}
+          setDistrict={setDistrict}
+          selectedState={selectedState}
+          setSelectedState={setSelectedState}
+          avatarUrl={avatarUrl}
+          setAvatarUrl={setAvatarUrl}
+          isEditingAvatar={isEditingAvatar}
+          setIsEditingAvatar={setIsEditingAvatar}
+          avatarInput={avatarInput}
+          setAvatarInput={setAvatarInput}
+          handleSaveAvatar={handleSaveAvatar}
+          handleSaveProfile={handleSaveProfile}
+          isPending={isPending}
+          currentPassword={currentPassword}
+          setCurrentPassword={setCurrentPassword}
+          newPassword={newPassword}
+          setNewPassword={setNewPassword}
+          confirmPassword={confirmPassword}
+          setConfirmPassword={setConfirmPassword}
+          showCurrentPassword={showCurrentPassword}
+          setShowCurrentPassword={setShowCurrentPassword}
+          showNewPassword={showNewPassword}
+          setShowNewPassword={setShowNewPassword}
+          showConfirmPassword={showConfirmPassword}
+          setShowConfirmPassword={setShowConfirmPassword}
+          isChangingPassword={isChangingPassword}
+          hasPasswordAccount={hasPasswordAccount}
+          isGoogleAccount={isGoogleAccount}
+          handleChangePassword={handleChangePassword}
+          notificationPrefs={notificationPrefs}
+          toggleNotificationPref={toggleNotificationPref}
+          handleSaveNotificationPrefs={handleSaveNotificationPrefs}
+          isSavingPrefs={isSavingPrefs}
+          setDeleteModalOpen={setDeleteModalOpen}
+        />
+      </div>
+
+      {/* ── DESKTOP & TABLET VIEW (≥ md) ── Existing Luxury Tabbed Layout ── */}
+      <div className="hidden md:block min-h-screen bg-stone-50/60 pb-20 pt-4 sm:pt-6">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-6">
         {/* ── LUXURY HERO BANNER ────────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-950 via-rose-900 to-amber-950 text-white shadow-xl ring-1 ring-rose-900/30">
           {/* Subtle Ambient Mandala / Pattern glow */}
@@ -1353,6 +1409,7 @@ export function ProfileClient({
           )}
         </div>
       </div>
+    </div>
 
       {/* ── Delete Account Security Confirmation Modal (TASK 11.3) ──────────── */}
       {deleteModalOpen &&
@@ -1452,6 +1509,6 @@ export function ProfileClient({
           </div>,
           document.body
         )}
-    </div>
+    </>
   );
 }

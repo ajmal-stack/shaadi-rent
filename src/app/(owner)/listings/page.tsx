@@ -83,8 +83,8 @@ export default async function OwnerListingsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-50/30 via-amber-50/10 to-white pb-24">
 
-      {/* ── Sticky header ─────────────────────────────────────────────────── */}
-      <div className="border-b border-rose-100/70 bg-white/95 backdrop-blur-md sticky top-0 z-10 shadow-xs">
+      {/* ── Sticky header (Desktop only; mobile has its own header in MobileListingsView) ── */}
+      <div className="hidden md:block border-b border-rose-100/70 bg-white/95 backdrop-blur-md sticky top-0 z-10 shadow-xs">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-700 to-rose-900 shadow-sm">
@@ -110,10 +110,10 @@ export default async function OwnerListingsPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-8 space-y-8">
+      <div className="mx-auto max-w-6xl px-0 md:px-6 pt-0 md:pt-8 space-y-0 md:space-y-8">
 
-        {/* ── Summary pills ──────────────────────────────────────────────── */}
-        <div className="flex flex-wrap gap-2">
+        {/* ── Summary pills (Desktop only; mobile has interactive tabs) ── */}
+        <div className="hidden md:flex flex-wrap gap-2">
           {[
             { label: "All",       count: counts.total,     color: "bg-stone-100 text-stone-700 border-stone-200" },
             { label: "Published", count: counts.published, color: "bg-emerald-50 text-emerald-800 border-emerald-200" },
@@ -134,7 +134,7 @@ export default async function OwnerListingsPage() {
 
         {/* ── Empty state ─────────────────────────────────────────────────── */}
         {counts.total === 0 && (
-          <div className="rounded-3xl border border-dashed border-rose-200 bg-white p-12 text-center">
+          <div className="mx-4 md:mx-0 mt-4 md:mt-0 rounded-3xl border border-dashed border-rose-200 bg-white p-8 sm:p-12 text-center">
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50">
               <Sparkles size={28} className="text-rose-600" />
             </div>
