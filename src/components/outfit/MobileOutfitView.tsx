@@ -24,7 +24,7 @@ import {
   Check,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DatePicker } from "@/components/ui/DatePicker";
+import { DynamicAvailabilityCalendar } from "./DynamicAvailabilityCalendar";
 import { CheckDatesModal } from "./CheckDatesModal";
 import { ShareModal } from "./ShareModal";
 import { AvailabilityWindow } from "./OutfitAvailability";
@@ -495,52 +495,29 @@ export function MobileOutfitView({
           </div>
         </div>
 
-        {/* ── 4. DATE PICKER & AVAILABILITY CARD (Inline) ───────────────────── */}
-        <div
-          ref={dateSectionRef}
-          className="rounded-3xl bg-white p-4.5 border border-rose-100/90 shadow-2xs space-y-2.5"
-        >
-          <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-stone-800">
-            <Calendar size={14} className="text-rose-800" />
-            <span>Select Wedding / Event Date</span>
-          </div>
-
-          <DatePicker
-            value={eventDate}
-            onChange={handleDateChange}
-            placeholder="Choose Wedding / Event Date"
-            minDate={tomorrow}
-            showPresets
-            error={dateError || undefined}
+        {/* ── 4. DYNAMIC AVAILABILITY CALENDAR (Green Available, Red Booked) ── */}
+        <div ref={dateSectionRef} className="space-y-2">
+          <DynamicAvailabilityCalendar
+            availability={availability}
+            selectedDate={eventDate}
+            onSelectDate={handleDateChange}
           />
 
           {dateError && (
-            <p className="flex items-start gap-1 text-[11px] font-medium text-rose-700 leading-tight">
+            <p className="flex items-start gap-1 text-[11px] font-medium text-rose-700 leading-tight px-1">
               <AlertCircle size={13} className="shrink-0 mt-0.5 text-rose-600" />
               <span>{dateError}</span>
             </p>
           )}
 
-          {isDateValidAndAvailable && (
-            <div className="rounded-2xl bg-emerald-50 border border-emerald-200/80 p-3 text-xs text-emerald-900 space-y-1">
-              <p className="font-bold flex items-center gap-1">
-                <CheckCircle2 size={14} className="text-emerald-700 shrink-0" />
-                <span>Reserved for Your Wedding!</span>
-              </p>
-              <p className="text-[11px] text-emerald-800/90 leading-relaxed">
-                Delivery: <strong>{deliveryDateStr}</strong> &bull; Return Pickup: <strong>{returnDateStr}</strong>
-              </p>
-            </div>
-          )}
-
-          {/* Free Hygiene & Delivery Guarantee */}
-          <div className="pt-2 border-t border-stone-100 grid grid-cols-2 gap-2 text-[10px] text-stone-500">
-            <span className="flex items-center gap-1">
-              <Truck size={12} className="text-rose-700 shrink-0" />
+          {/* Hygiene & Delivery Guarantee Strip */}
+          <div className="rounded-2xl bg-white border border-rose-100/90 p-3 grid grid-cols-2 gap-2 text-[10px] text-stone-500 shadow-2xs">
+            <span className="flex items-center gap-1.5 font-medium">
+              <Truck size={13} className="text-rose-700 shrink-0" />
               Delivered 48 hrs early
             </span>
-            <span className="flex items-center gap-1">
-              <ShieldCheck size={12} className="text-emerald-700 shrink-0" />
+            <span className="flex items-center gap-1.5 font-medium">
+              <ShieldCheck size={13} className="text-emerald-700 shrink-0" />
               100% Sanitized &amp; Inspected
             </span>
           </div>

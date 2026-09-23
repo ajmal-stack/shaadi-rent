@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { CheckDatesModal } from "./CheckDatesModal";
 import { AvailabilityWindow } from "./OutfitAvailability";
-import { DatePicker } from "@/components/ui/DatePicker";
+import { DynamicAvailabilityCalendar } from "./DynamicAvailabilityCalendar";
 import { toggleWishlist } from "@/app/actions/wishlist";
 import { triggerWishlistFlyEffect } from "@/lib/utils/wishlistFlyAnimation";
 import { ShareModal } from "./ShareModal";
@@ -40,12 +40,16 @@ interface OutfitActionCardProps {
   };
   availability?: AvailabilityWindow[] | null;
   initialWishlisted?: boolean;
+  selectedDate?: string | null;
+  onSelectDate?: (dateStr: string) => void;
 }
 
 export function OutfitActionCard({
   outfit,
   availability = [],
   initialWishlisted = false,
+  selectedDate: controlledSelectedDate,
+  onSelectDate,
 }: OutfitActionCardProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,9 +57,10 @@ export function OutfitActionCard({
   const [isCopied, setIsCopied] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(initialWishlisted);
   const [isWishlistPending, setIsWishlistPending] = useState(false);
-  const [eventDate, setEventDate] = useState("");
+  const [internalEventDate, setInternalEventDate] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
-  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const eventDate = controlledSelectedDate !== undefined ? (controlledSelectedDate ?? "") : internalEventDate;
 
   useEffect(() => {
     setIsWishlisted(initialWishlisted);
@@ -183,7 +188,11 @@ export function OutfitActionCard({
   }
 
   const handleDateChange = (val: string) => {
-    setEventDate(val);
+    if (onSelectDate) {
+      onSelectDate(val);
+    } else {
+      setInternalEventDate(val);
+    }
     if (!val) {
       setDateError(null);
       return;
@@ -198,8 +207,7 @@ export function OutfitActionCard({
 
   const handleCtaClick = () => {
     if (!eventDate) {
-      setDateError("Please select your wedding/event date to check availability.");
-      dateInputRef.current?.focus();
+      setDateError("Please tap an open green date on the calendar above.");
       return;
     }
 
@@ -349,18 +357,29 @@ export function OutfitActionCard({
           </div>
         </div>
 
-        {/* Date Selector & Availability Check */}
-        <div className="space-y-2 pt-1 border-t border-stone-100">
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600">
-            Select Wedding / Event Date
-          </label>
-          <DatePicker
-            value={eventDate}
-            onChange={handleDateChange}
-            placeholder="Select Wedding / Event Date"
-            minDate={tomorrow}
-            showPresets
-            error={dateError || undefined}
+        {/* Date Selector & Live Dynamic Availability Calendar */}
+        <div className="space-y-2.5 pt-3 border-t border-stone-100">
+          <div className="flex items-center justify-between">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700">
+              Select Wedding / Event Date
+            </label>
+            {eventDate && (
+              <button
+                type="button"
+                onClick={() => handleDateChange("")}
+                className="text-[10px] font-bold text-rose-700 hover:text-rose-900 transition-colors cursor-pointer"
+              >
+                Clear date
+              </button>
+            )}
+          </div>
+
+          {/* Live Dynamic Calendar replacing old calendar */}
+          <DynamicAvailabilityCalendar
+            availability={availability}
+            selectedDate={eventDate}
+            onSelectDate={handleDateChange}
+            compact
           />
 
           {/* Validation Feedback */}
@@ -375,7 +394,7 @@ export function OutfitActionCard({
             <div className="rounded-xl bg-emerald-50 border border-emerald-200/80 p-2.5 text-[11px] text-emerald-900 space-y-1">
               <p className="font-bold flex items-center gap-1">
                 <CheckCircle2 size={13} className="text-emerald-700 shrink-0" />
-                <span>Dates Available for Reservation!</span>
+                <span>Wedding Date Selected &amp; Available!</span>
               </p>
               <p className="text-emerald-800/90 text-[10px]">
                 Delivery: <strong className="text-emerald-950">{deliveryDateStr}</strong> &bull; Return: <strong className="text-emerald-950">{returnDateStr}</strong>
@@ -384,12 +403,12 @@ export function OutfitActionCard({
           )}
         </div>
 
-        {/* Primary CTA Button: "Check Availability" -> "Continue to Booking" */}
+        {/* Primary CTA Button: "Select an Available Date" -> "Continue to Booking" */}
         <div className="space-y-2">
           <button
             type="button"
             onClick={handleCtaClick}
-            className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 sm:py-4 text-sm font-semibold text-white shadow-lg transition-all active:scale-[0.98] ${
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 sm:py-4 text-sm font-semibold text-white shadow-lg transition-all active:scale-[0.98] cursor-pointer ${
               isDateValidAndAvailable
                 ? "bg-gradient-to-r from-emerald-700 via-teal-800 to-stone-900 shadow-emerald-950/20 hover:from-emerald-800 hover:to-black"
                 : "bg-gradient-to-r from-rose-700 via-rose-800 to-stone-900 shadow-rose-950/15 hover:from-rose-800 hover:to-black"
@@ -397,7 +416,7 @@ export function OutfitActionCard({
           >
             <Calendar size={18} />
             <span>
-              {isDateValidAndAvailable ? "Continue to Booking" : "Check Availability"}
+              {isDateValidAndAvailable ? "Continue to Booking" : "Select an Available Date"}
             </span>
           </button>
 
