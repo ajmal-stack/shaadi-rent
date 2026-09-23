@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getOutfitImageUrl } from "@/lib/utils/image";
@@ -78,11 +79,15 @@ export default async function OwnerDashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect("/auth/login");
+  }
+
   // Load owner profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, email, avatar_url, role")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
   // Load owner's outfits with primary image and basic stats

@@ -13,6 +13,11 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ user }: MobileBottomNavProps) {
   const pathname = usePathname();
 
+  // On individual outfit detail pages (/outfits/[slug]), hide generic bottom nav in favor of the dedicated booking action bar
+  if (pathname.startsWith("/outfits/")) {
+    return null;
+  }
+
   const isBrowseActive = pathname.startsWith("/browse");
   const isHowItWorksActive = pathname.startsWith("/how-it-works");
   const isRentOutfitActive = pathname.startsWith("/rent-your-outfit") || pathname.startsWith("/list-your-outfit");
