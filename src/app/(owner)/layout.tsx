@@ -84,7 +84,7 @@ export default async function OwnerLayout({
       </div>
 
       <main className="flex-1 flex flex-col">{children}</main>
-      <Footer className="mt-auto" />
+      <Footer className="mt-auto hidden md:block" />
     </div>
   );
 }

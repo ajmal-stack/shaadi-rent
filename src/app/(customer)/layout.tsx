@@ -33,7 +33,7 @@ export default async function CustomerLayout({
     <div className="flex flex-col min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
       <Header />
       <main className="flex-1 flex flex-col">{children}</main>
-      <Footer className="mt-auto" />
+      <Footer className="mt-auto hidden md:block" />
     </div>
   );
 }
