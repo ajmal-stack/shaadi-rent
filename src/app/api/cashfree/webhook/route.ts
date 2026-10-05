@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Json } from "@/types/database";
 
 const CF_SECRET = process.env.CASHFREE_SECRET_KEY ?? "";
 
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
       .update({
         provider_payment_id: String(cfPaymentId ?? ""),
         status: "successful",
-        metadata: payload as Record<string, unknown>,
+        metadata: payload as unknown as import("@/types/database").Json,
         updated_at: new Date().toISOString(),
       })
       .eq("id", paymentRow.id);
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
       .update({
         provider_payment_id: String(cfPaymentId ?? ""),
         status: "failed",
-        metadata: payload as Record<string, unknown>,
+        metadata: payload as unknown as import("@/types/database").Json,
         updated_at: new Date().toISOString(),
       })
       .eq("id", paymentRow.id);

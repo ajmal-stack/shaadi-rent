@@ -56,6 +56,7 @@ export type BookingStatus =
 export type BookingPaymentStatus =
   | "pending"
   | "paid"
+  | "cod_pending"
   | "partially_refunded"
   | "refunded"
   | "failed";
