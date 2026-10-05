@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   XCircle,
   AlertCircle,
+  CreditCard,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
@@ -172,45 +173,64 @@ export default async function BookingsPage() {
                       <Link
                         key={booking.id}
                         href={`/bookings/${booking.id}`}
-                        className="group flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-rose-200 hover:shadow-md transition-all"
+                        className={`group flex flex-col rounded-2xl border bg-white shadow-sm hover:shadow-md transition-all overflow-hidden ${
+                          booking.payment_status === "pending"
+                            ? "border-amber-300 hover:border-amber-400"
+                            : "border-stone-200 hover:border-rose-200"
+                        }`}
                       >
-                        {/* Icon */}
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border ${info.bg} ${info.border}`}>
-                          <StatusIcon size={22} className={info.color} />
-                        </div>
+                        {/* Payment Pending Banner */}
+                        {booking.payment_status === "pending" && (
+                          <div className="flex items-center gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2">
+                            <CreditCard size={13} className="text-amber-700 shrink-0" />
+                            <p className="text-[11px] font-bold text-amber-800 flex-1">
+                              Payment Incomplete — Tap to complete payment
+                            </p>
+                            <span className="text-[10px] font-extrabold text-amber-900 bg-amber-200 rounded-full px-2 py-0.5">
+                              PAY NOW
+                            </span>
+                          </div>
+                        )}
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="font-bold text-stone-900 truncate">
-                                {booking.outfits?.title ?? `Booking #${booking.booking_number}`}
-                              </p>
-                              {booking.outfits?.brand && (
-                                <p className="text-[11px] font-semibold text-amber-800">{booking.outfits.brand}</p>
-                              )}
+                        <div className="flex items-center gap-4 p-5">
+                          {/* Icon */}
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border ${info.bg} ${info.border}`}>
+                            <StatusIcon size={22} className={info.color} />
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="font-bold text-stone-900 truncate">
+                                  {booking.outfits?.title ?? `Booking #${booking.booking_number}`}
+                                </p>
+                                {booking.outfits?.brand && (
+                                  <p className="text-[11px] font-semibold text-amber-800">{booking.outfits.brand}</p>
+                                )}
+                              </div>
+                              <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold flex-shrink-0 ${info.bg} ${info.color} ${info.border}`}>
+                                {info.label}
+                              </span>
                             </div>
-                            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold flex-shrink-0 ${info.bg} ${info.color} ${info.border}`}>
-                              {info.label}
-                            </span>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px] text-stone-500">
+                              <span className="flex items-center gap-1">
+                                <Truck size={11} />
+                                Delivery: {fmtDate(booking.rental_start_date)}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <PackageCheck size={11} />
+                                Return: {fmtDate(booking.rental_end_date)}
+                              </span>
+                            </div>
                           </div>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px] text-stone-500">
-                            <span className="flex items-center gap-1">
-                              <Truck size={11} />
-                              Delivery: {fmtDate(booking.rental_start_date)}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <PackageCheck size={11} />
-                              Return: {fmtDate(booking.rental_end_date)}
-                            </span>
-                          </div>
-                        </div>
 
-                        {/* Amount + chevron */}
-                        <div className="flex flex-col items-end flex-shrink-0">
-                          <span className="font-bold text-stone-900 text-sm">₹{booking.total_amount.toLocaleString("en-IN")}</span>
-                          <span className="text-[10px] text-stone-400">Total</span>
-                          <ChevronRight size={14} className="mt-2 text-stone-400 group-hover:text-rose-600 group-hover:translate-x-0.5 transition-all" />
+                          {/* Amount + chevron */}
+                          <div className="flex flex-col items-end flex-shrink-0">
+                            <span className="font-bold text-stone-900 text-sm">₹{booking.total_amount.toLocaleString("en-IN")}</span>
+                            <span className="text-[10px] text-stone-400">Total</span>
+                            <ChevronRight size={14} className="mt-2 text-stone-400 group-hover:text-rose-600 group-hover:translate-x-0.5 transition-all" />
+                          </div>
                         </div>
                       </Link>
                     );

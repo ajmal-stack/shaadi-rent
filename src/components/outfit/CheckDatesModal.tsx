@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   X,
   Sparkles,
@@ -14,10 +15,13 @@ import {
   MapPin,
   Phone,
   User,
-  CreditCard,
+  Lock,
   Truck,
+  CreditCard,
+  Banknote,
 } from "lucide-react";
 import { createBooking } from "@/app/actions/booking";
+import { CashfreeCheckout } from "@/components/payment/CashfreeCheckout";
 import type { DeliveryAddress } from "@/types/database";
 
 interface CheckDatesModalProps {
@@ -35,14 +39,14 @@ interface CheckDatesModalProps {
   rentalEndDate?: string;
 }
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 
-const STEP_LABELS = ["Summary", "Delivery", "Confirm"];
+const STEP_LABELS = ["Summary", "Delivery", "Confirm", "Pay"];
 
 function StepIndicator({ current }: { current: Step }) {
   return (
     <div className="flex items-center justify-center gap-2 mb-1">
-      {([1, 2, 3] as Step[]).map((step) => {
+      {([1, 2, 3, 4] as Step[]).map((step) => {
         const done = step < current;
         const active = step === current;
         return (
@@ -102,9 +106,18 @@ export function CheckDatesModal({
   rentalStartDate,
   rentalEndDate,
 }: CheckDatesModalProps) {
+  const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [paymentSessionId, setPaymentSessionId] = useState<string | null>(null);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  // Tracks whether the Cashfree modal was closed before payment was completed
+  const [paymentClosed, setPaymentClosed] = useState(false);
+  // Incrementing this key force-remounts <CashfreeCheckout>, resetting hasLaunched
+  const [attemptKey, setAttemptKey] = useState(0);
+  // Payment method: "online" = Cashfree gateway | "cod" = Cash on Delivery
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">("online");
 
   // Delivery address fields
   const [addr, setAddr] = useState<DeliveryAddress>({
@@ -165,12 +178,43 @@ export function CheckDatesModal({
         rentalAmount: rentalPrice,
         securityDeposit,
         deliveryAddress: addr,
+        customerPhone: addr.phone,
+        paymentMethod,
       });
 
       if (result?.error) {
         setError(result.error);
+        return;
+      }
+
+      // COD: booking already confirmed — go straight to the confirmed page
+      if (result.codBookingId) {
+        router.push(`/bookings/${result.codBookingId}/confirmed`);
+        return;
+      }
+
+      // Online: proceed to Cashfree step
+      if (result.paymentSessionId && result.bookingId) {
+        setPaymentSessionId(result.paymentSessionId);
+        setBookingId(result.bookingId);
+        setStep(4);
       }
     });
+  };
+
+  const handlePaymentComplete = () => {
+    // The Cashfree modal closed — we don't know yet if payment succeeded.
+    // Show the retry UI; the user can retry or navigate to their booking.
+    setPaymentClosed(true);
+  };
+
+  const handleRetryPayment = () => {
+    setPaymentClosed(false);
+    setAttemptKey((k) => k + 1); // force-remount CashfreeCheckout
+  };
+
+  const handleViewBooking = () => {
+    if (bookingId) router.push(`/bookings/${bookingId}`);
   };
 
   const handleBackdropClick = () => {
@@ -529,6 +573,62 @@ export function CheckDatesModal({
                 </p>
               </div>
 
+              {/* Payment Method Selector */}
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-stone-700">Choose Payment Method</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {/* Online Payment */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("online")}
+                    className={`flex flex-col items-center gap-2 rounded-2xl border p-4 text-xs font-semibold transition-all ${
+                      paymentMethod === "online"
+                        ? "border-rose-400 bg-rose-50 text-rose-800 shadow-sm ring-2 ring-rose-200"
+                        : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
+                    }`}
+                  >
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+                      paymentMethod === "online" ? "bg-rose-100" : "bg-stone-100"
+                    }`}>
+                      <CreditCard size={18} className={paymentMethod === "online" ? "text-rose-700" : "text-stone-500"} />
+                    </div>
+                    <span>Pay Online</span>
+                    <span className={`text-[10px] font-normal ${
+                      paymentMethod === "online" ? "text-rose-600" : "text-stone-400"
+                    }`}>UPI / Card / Net Banking</span>
+                  </button>
+
+                  {/* Cash on Delivery */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("cod")}
+                    className={`flex flex-col items-center gap-2 rounded-2xl border p-4 text-xs font-semibold transition-all ${
+                      paymentMethod === "cod"
+                        ? "border-emerald-400 bg-emerald-50 text-emerald-800 shadow-sm ring-2 ring-emerald-200"
+                        : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
+                    }`}
+                  >
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+                      paymentMethod === "cod" ? "bg-emerald-100" : "bg-stone-100"
+                    }`}>
+                      <Banknote size={18} className={paymentMethod === "cod" ? "text-emerald-700" : "text-stone-500"} />
+                    </div>
+                    <span>Pay on Delivery</span>
+                    <span className={`text-[10px] font-normal ${
+                      paymentMethod === "cod" ? "text-emerald-600" : "text-stone-400"
+                    }`}>Cash at doorstep</span>
+                  </button>
+                </div>
+
+                {/* COD note */}
+                {paymentMethod === "cod" && (
+                  <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2.5 text-[11px] text-emerald-800">
+                    <Banknote size={13} className="shrink-0 mt-0.5 text-emerald-600" />
+                    <span>Pay <strong>₹{totalAmount.toLocaleString("en-IN")}</strong> in cash when your outfit is delivered. No online transaction needed.</span>
+                  </div>
+                )}
+              </div>
+
               {/* Final Price */}
               <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4 space-y-2 text-xs">
                 <div className="flex justify-between text-stone-600">
@@ -550,9 +650,11 @@ export function CheckDatesModal({
                   <span>₹{totalAmount.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex items-start gap-1.5 pt-1 border-t border-stone-100">
-                  <CreditCard size={12} className="text-blue-600 shrink-0 mt-0.5" />
+                  <Lock size={12} className="text-emerald-600 shrink-0 mt-0.5" />
                   <p className="text-[10px] text-stone-500">
-                    Payment will be collected by our partner delivery agent at the time of delivery. No advance payment required.
+                    {paymentMethod === "cod"
+                      ? "Cash payment collected by our delivery agent. Security deposit refunded after inspection."
+                      : "Secure online payment via Cashfree. Card and UPI details are never stored by ShaadiRent."}
                   </p>
                 </div>
               </div>
@@ -578,21 +680,90 @@ export function CheckDatesModal({
                   type="button"
                   onClick={handleConfirmBooking}
                   disabled={isPending}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-700 via-rose-800 to-stone-900 py-3.5 text-sm font-semibold text-white shadow-md hover:from-rose-800 hover:to-black transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold text-white shadow-md transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${
+                    paymentMethod === "cod"
+                      ? "bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900"
+                      : "bg-gradient-to-r from-rose-700 via-rose-800 to-stone-900 hover:from-rose-800 hover:to-black"
+                  }`}
                 >
                   {isPending ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
-                      <span>Confirming…</span>
+                      <span>{paymentMethod === "cod" ? "Confirming Booking..." : "Creating Booking..."}</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 size={16} />
-                      <span>Confirm &amp; Book Now</span>
+                      {paymentMethod === "cod" ? <Banknote size={16} /> : <Lock size={16} />}
+                      <span>{paymentMethod === "cod" ? "Confirm — Pay on Delivery" : "Proceed to Secure Payment"}</span>
                     </>
                   )}
                 </button>
               </div>
+            </>
+          )}
+
+          {/* STEP 4: Cashfree Payment */}
+          {step === 4 && paymentSessionId && (
+            <>
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-0.5 text-xs font-semibold text-emerald-800">
+                  <Lock size={13} className="text-emerald-600" />
+                  Secure Checkout
+                </span>
+                <h3 className="mt-2 font-display text-xl sm:text-2xl font-bold text-stone-900">
+                  Complete Your Payment
+                </h3>
+                <p className="text-xs text-stone-500 mt-1">
+                  Total:{" "}
+                  <strong className="text-stone-900">
+                    Rs.{(rentalPrice + securityDeposit + Math.round(rentalPrice * 0.05)).toLocaleString("en-IN")}
+                  </strong>
+                  {" "} via Cashfree Payments
+                </p>
+              </div>
+
+              {paymentClosed ? (
+                /* Payment modal was closed — show retry / view-booking options */
+                <div className="flex flex-col items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-6 text-center">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-100">
+                    <AlertCircle size={22} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-stone-800">Payment not completed</p>
+                    <p className="mt-1 text-xs text-stone-500">
+                      Your booking is saved. You can retry payment or check your booking status.
+                    </p>
+                  </div>
+                  <div className="flex w-full gap-2.5">
+                    <button
+                      type="button"
+                      onClick={handleViewBooking}
+                      className="flex-1 rounded-xl border border-stone-200 py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-50 transition-colors"
+                    >
+                      View Booking
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRetryPayment}
+                      className="flex-1 rounded-xl bg-gradient-to-r from-rose-700 to-stone-900 py-2.5 text-xs font-semibold text-white shadow hover:from-rose-800 hover:to-black transition-all"
+                    >
+                      Retry Payment
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <CashfreeCheckout
+                  key={attemptKey}
+                  paymentSessionId={paymentSessionId}
+                  onComplete={handlePaymentComplete}
+                />
+              )}
+
+              <p className="text-[10px] text-center text-stone-400">
+                {paymentClosed
+                  ? "Your booking will be cancelled if payment is not completed within 30 minutes."
+                  : "Do not close this window while payment is in progress."}
+              </p>
             </>
           )}
         </div>

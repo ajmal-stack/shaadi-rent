@@ -12,6 +12,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { BookingTimeline } from "@/components/booking/BookingTimeline";
 import { CustomerActions } from "@/components/booking/CustomerActions";
+import { RetryPaymentBanner } from "@/components/booking/RetryPaymentBanner";
+import { getBookingPaymentSession } from "@/app/actions/payment";
 import type { BookingStatus, DeliveryAddress, Dispute } from "@/types/database";
 
 export const metadata: Metadata = {
@@ -26,18 +28,18 @@ const STATUS_DISPLAY: Record<
   string,
   { label: string; color: string; bg: string; border: string }
 > = {
-  pending:            { label: "Pending",              color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200"  },
-  confirmed:          { label: "Confirmed",             color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200"   },
-  pickup_scheduled:   { label: "Pickup Scheduled",      color: "text-indigo-700",  bg: "bg-indigo-50",  border: "border-indigo-200" },
-  out_for_delivery:   { label: "Out for Delivery",      color: "text-sky-700",     bg: "bg-sky-50",     border: "border-sky-200"    },
-  delivered:          { label: "Delivered",             color: "text-teal-700",    bg: "bg-teal-50",    border: "border-teal-200"   },
-  active:             { label: "Active Rental",         color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200"},
-  return_scheduled:   { label: "Return Scheduled",      color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200" },
-  returned:           { label: "Returned",              color: "text-stone-600",   bg: "bg-stone-50",   border: "border-stone-200"  },
-  inspection:         { label: "Under Inspection",      color: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-200" },
-  completed:          { label: "Completed",             color: "text-emerald-700", bg: "bg-emerald-100",border: "border-emerald-300"},
-  cancelled:          { label: "Cancelled",             color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-200"   },
-  disputed:           { label: "Disputed",              color: "text-orange-800",  bg: "bg-orange-50",  border: "border-orange-200" },
+  pending: { label: "Pending", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
+  confirmed: { label: "Confirmed", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
+  pickup_scheduled: { label: "Pickup Scheduled", color: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-200" },
+  out_for_delivery: { label: "Out for Delivery", color: "text-sky-700", bg: "bg-sky-50", border: "border-sky-200" },
+  delivered: { label: "Delivered", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-200" },
+  active: { label: "Active Rental", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
+  return_scheduled: { label: "Return Scheduled", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200" },
+  returned: { label: "Returned", color: "text-stone-600", bg: "bg-stone-50", border: "border-stone-200" },
+  inspection: { label: "Under Inspection", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200" },
+  completed: { label: "Completed", color: "text-emerald-700", bg: "bg-emerald-100", border: "border-emerald-300" },
+  cancelled: { label: "Cancelled", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200" },
+  disputed: { label: "Disputed", color: "text-orange-800", bg: "bg-orange-50", border: "border-orange-200" },
 };
 
 function fmtDate(iso: string) {
@@ -123,6 +125,12 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
   const isCompleted = booking.status === "completed";
   const isTerminal = booking.status === "completed" || booking.status === "cancelled";
 
+  // Fetch payment session for pending bookings (enables retry payment banner)
+  const pendingPayment =
+    booking.payment_status !== "paid" && booking.status !== "cancelled"
+      ? await getBookingPaymentSession(id)
+      : null;
+
   return (
     <div className="min-h-screen bg-stone-50/50 py-8 sm:py-12">
       <div className="mx-auto max-w-2xl px-4 sm:px-6 space-y-5">
@@ -161,6 +169,15 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
           />
         )}
 
+        {/* ── Retry Payment Banner (shown when payment is still pending) ── */}
+        {pendingPayment && (
+          <RetryPaymentBanner
+            bookingId={booking.id}
+            paymentSessionId={pendingPayment.paymentSessionId}
+            totalAmount={pendingPayment.totalAmount}
+          />
+        )}
+
         {/* ── Dispute Details Card (if dispute exists) ── */}
         {dispute && (
           <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm space-y-4">
@@ -179,15 +196,14 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
                 </div>
               </div>
               <span
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
-                  dispute.status === "open"
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${dispute.status === "open"
                     ? "bg-amber-50 text-amber-800 border-amber-200"
                     : dispute.status === "under_review"
-                    ? "bg-blue-50 text-blue-800 border-blue-200"
-                    : dispute.status === "resolved"
-                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                    : "bg-stone-100 text-stone-700 border-stone-200"
-                }`}
+                      ? "bg-blue-50 text-blue-800 border-blue-200"
+                      : dispute.status === "resolved"
+                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                        : "bg-stone-100 text-stone-700 border-stone-200"
+                  }`}
               >
                 {dispute.status === "open" && "Under Review"}
                 {dispute.status === "under_review" && "Investigating"}
@@ -218,11 +234,10 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
 
             {dispute.resolution_notes && (
               <div
-                className={`rounded-xl border p-3.5 space-y-1.5 text-xs ${
-                  dispute.status === "resolved"
+                className={`rounded-xl border p-3.5 space-y-1.5 text-xs ${dispute.status === "resolved"
                     ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
                     : "bg-stone-50 border-stone-200 text-stone-900"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-1.5 font-bold text-xs">
                   <Sparkles
@@ -291,7 +306,7 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
         {/* ── Booking Progress Timeline ── */}
         <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-bold text-stone-800 mb-5">Booking Progress</h3>
-        <BookingTimeline
+          <BookingTimeline
             currentStatus={booking.status as BookingStatus}
             deliveryDate={booking.rental_start_date}
             returnDate={booking.rental_end_date}
@@ -348,11 +363,10 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
           <div className="flex items-center justify-between pt-1">
             <span className="text-stone-500">Payment Status</span>
             <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${
-                booking.payment_status === "paid"
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${booking.payment_status === "paid"
                   ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                   : "bg-amber-50 text-amber-800 border-amber-200"
-              }`}
+                }`}
             >
               {booking.payment_status === "paid" ? "Paid" : "Pay at Delivery"}
             </span>

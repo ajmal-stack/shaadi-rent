@@ -58,6 +58,29 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            // Allow Cashfree payment iframes and SDK scripts
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.cashfree.com https://www.googletagmanager.com",
+              "frame-src 'self' https://*.cashfree.com https://api.cashfree.com",
+              "connect-src 'self' https://*.cashfree.com https://*.supabase.co wss://*.supabase.co https://res.cloudinary.com https://api.cashfree.com",
+              "img-src 'self' data: blob: https://res.cloudinary.com https://lh3.googleusercontent.com https://*.supabase.co https://*.cashfree.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+            ].join("; "),
+          },
+        ],
+      },
+    ];
+  },
 };
+
 
 export default nextConfig;
