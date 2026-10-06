@@ -21,7 +21,7 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  scroll-behavior: smooth;
+  height: 100%;
 }
 
 html.dark {
@@ -37,6 +37,8 @@ body {
   font-family: var(--font-sans);
   background-color: #ffffff;
   color: #111827;
+  min-height: 100%;
+  min-height: 100dvh;
 }
 
 /* ── Prevent lag or sluggish transitions during instant theme toggle ─────── */

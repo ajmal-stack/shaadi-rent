@@ -18,7 +18,7 @@ export function Footer({ className = "" }: { className?: string }) {
 
   return (
     <footer
-      className={`border-t border-rose-100 bg-stone-950 text-stone-300 pt-12 sm:pt-16 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-12 mt-auto ${wizardMobileClass} ${className}`}
+      className={`w-full mt-auto shrink-0 border-t border-rose-100 bg-stone-950 text-stone-300 pt-12 sm:pt-16 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-12 ${wizardMobileClass} ${className}`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10 pb-10 sm:pb-12 border-b border-stone-800/80">

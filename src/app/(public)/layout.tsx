@@ -13,10 +13,10 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="flex-1 flex flex-col w-full min-h-dvh">
       <Header />
-      <main className="flex-1 flex flex-col">{children}</main>
-      <Footer className="mt-auto" />
+      <main className="flex-1 flex flex-col w-full">{children}</main>
+      <Footer />
     </div>
   );
 }

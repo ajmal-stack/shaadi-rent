@@ -8,7 +8,7 @@ import { TestimonialsSection } from "@/components/home/TestimonialsSection";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-white">
+    <div className="w-full bg-white">
       {/* 1. Cinematic Hero with Interactive Rental Finder */}
       <HeroSection />
 
@@ -29,6 +29,6 @@ export default function HomePage() {
 
       {/* 7. Real Brides & Grooms Social Proof */}
       <TestimonialsSection />
-    </main>
+    </div>
   );
 }

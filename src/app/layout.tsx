@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning={true}>
+    <html lang="en" suppressHydrationWarning={true}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -43,10 +43,12 @@ export default function RootLayout({
       </head>
       <body
         suppressHydrationWarning={true}
-        className="min-h-screen flex flex-col bg-white text-gray-900 antialiased"
+        className="min-h-dvh flex flex-col bg-white text-gray-900 antialiased"
       >
         <Toaster richColors position="top-right" closeButton />
-        {children}
+        <div className="flex-1 flex flex-col w-full min-h-dvh">
+          {children}
+        </div>
       </body>
     </html>
   );

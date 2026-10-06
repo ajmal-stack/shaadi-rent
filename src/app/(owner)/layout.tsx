@@ -46,11 +46,11 @@ export default async function OwnerLayout({
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="flex-1 flex flex-col w-full min-h-dvh">
       <Header />
 
       {/* Owner quick-nav strip */}
-      <div className="border-b border-stone-100 bg-white shadow-xs">
+      <div className="border-b border-stone-100 bg-white shadow-xs shrink-0">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 flex items-center gap-1 overflow-x-auto">
           <Link
             href="/dashboard"
@@ -83,8 +83,10 @@ export default async function OwnerLayout({
         </div>
       </div>
 
-      <main className="flex-1 flex flex-col">{children}</main>
-      <Footer className="mt-auto hidden md:block" />
+      <main className="flex-1 flex flex-col w-full pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
+        {children}
+      </main>
+      <Footer className="hidden md:block" />
     </div>
   );
 }
