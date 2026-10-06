@@ -599,9 +599,17 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
             {/* Warning banner */}
             <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/30 p-3 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-300">
               <AlertTriangle size={16} className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-              <p className="leading-relaxed">
-                Refunds are routed through the payment gateway back to the customer&apos;s original payment method. This operation is recorded in the booking audit log and cannot be undone.
-              </p>
+              <div className="leading-relaxed space-y-1">
+                <p>
+                  Refunds are routed through the payment gateway back to the customer&apos;s original payment method. This operation is recorded in the booking audit log and cannot be undone.
+                </p>
+                {refundPayment.provider !== "cash" && (
+                  <p className="font-semibold text-blue-700 dark:text-blue-300">
+                    ℹ️ Gateway Mode: Cashfree {(process.env.NEXT_PUBLIC_CASHFREE_ENV || "sandbox").toLowerCase() === "sandbox" ? "Sandbox (Test Environment)" : "Live Production"}.
+                    {(process.env.NEXT_PUBLIC_CASHFREE_ENV || "sandbox").toLowerCase() === "sandbox" && " Test refunds will reflect at sandbox.cashfree.com/merchants or under Test Mode in your Cashfree dashboard."}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Form */}
@@ -851,11 +859,11 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
                         <button
                           type="button"
                           onClick={() =>
-                            copyToClipboard(detailPayment.provider_payment_id!, "rzp_pid")
+                            copyToClipboard(detailPayment.provider_payment_id!, "cf_pid")
                           }
                           className="text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 p-1"
                         >
-                          {copiedId === "rzp_pid" ? (
+                          {copiedId === "cf_pid" ? (
                             <Check size={12} className="text-emerald-600" />
                           ) : (
                             <Copy size={12} />
@@ -877,11 +885,11 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
                         <button
                           type="button"
                           onClick={() =>
-                            copyToClipboard(detailPayment.provider_order_id!, "rzp_oid")
+                            copyToClipboard(detailPayment.provider_order_id!, "cf_oid")
                           }
                           className="text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 p-1"
                         >
-                          {copiedId === "rzp_oid" ? (
+                          {copiedId === "cf_oid" ? (
                             <Check size={12} className="text-emerald-600" />
                           ) : (
                             <Copy size={12} />
@@ -889,6 +897,27 @@ export function PaymentsClient({ initialPayments }: PaymentsClientProps) {
                         </button>
                       )}
                     </div>
+                    {detailPayment.provider_order_id && detailPayment.provider !== "cash" && (
+                      <a
+                        href={
+                          (process.env.NEXT_PUBLIC_CASHFREE_ENV || "sandbox").toLowerCase() === "sandbox"
+                            ? "https://sandbox.cashfree.com/merchants/orders"
+                            : "https://merchant.cashfree.com/merchants/orders"
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-700 dark:text-rose-400 hover:underline mt-1"
+                      >
+                        <span>
+                          Open in Cashfree Dashboard (
+                          {(process.env.NEXT_PUBLIC_CASHFREE_ENV || "sandbox").toLowerCase() === "sandbox"
+                            ? "Sandbox"
+                            : "Live"}
+                          )
+                        </span>
+                        <ExternalLink size={10} />
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>

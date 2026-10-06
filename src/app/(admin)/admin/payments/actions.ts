@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { cashfree } from "@/lib/cashfree/client";
 import type { PaymentStatus } from "@/types/database";
 
 /**
@@ -41,7 +42,8 @@ export interface InitiateRefundResult {
 
 /**
  * Initiates a full or partial refund on a payment.
- * Supports Razorpay API when credentials are set, with dev simulation fallback.
+ * Calls Cashfree PG API (PGOrderCreateRefund) for Cashfree orders,
+ * with support for offline COD adjustments and legacy Razorpay records.
  * Updates payments table, bookings payment_status, and logs audit trail in booking_events.
  */
 export async function initiateRefund(
@@ -135,18 +137,151 @@ export async function initiateRefund(
       };
     }
 
-    // 3. Process with Payment Gateway (Razorpay) or simulate
+    // 3. Process with Payment Gateway (Cashfree / Razorpay / Cash)
     let refundId = "";
-    const razorpayKey = process.env.RAZORPAY_KEY_ID;
-    const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
+    let cfRefundData: Record<string, unknown> | null = null;
 
-    if (
-      razorpayKey &&
-      razorpaySecret &&
+    const hasCashfreeKeys =
+      Boolean(process.env.CASHFREE_APP_ID) &&
+      Boolean(process.env.CASHFREE_SECRET_KEY);
+
+    const isExplicitCash =
+      payment.provider === "cash" ||
+      currentMeta.payment_mode === "cash_on_delivery" ||
+      currentMeta.collected_by === "delivery_boy";
+
+    const isExplicitRazorpay =
       payment.provider === "razorpay" &&
-      payment.provider_payment_id &&
-      !payment.provider_payment_id.startsWith("sim_")
-    ) {
+      Boolean(process.env.RAZORPAY_KEY_ID) &&
+      Boolean(
+        payment.provider_payment_id &&
+          !payment.provider_payment_id.startsWith("sim_")
+      );
+
+    // Is this a Cashfree payment?
+    // Matches if provider is explicitly cashfree, or if it has cf metadata/orderId,
+    // or if Cashfree is configured and it's neither cash nor active razorpay.
+    const isCashfree =
+      !isExplicitCash &&
+      !isExplicitRazorpay &&
+      (payment.provider === "cashfree" ||
+        Boolean(currentMeta.cf_order_id) ||
+        Boolean(currentMeta.payment_session_id) ||
+        payment.provider_order_id?.startsWith("SR-") ||
+        hasCashfreeKeys);
+
+    // ── A. Cashfree Gateway Refund (Primary) ──────────────────────────────────
+    if (isCashfree) {
+      if (!hasCashfreeKeys) {
+        return {
+          success: false,
+          error:
+            "Cashfree credentials (CASHFREE_APP_ID and CASHFREE_SECRET_KEY) are missing in environment variables.",
+        };
+      }
+
+      const orderId =
+        payment.provider_order_id ||
+        (currentMeta.cf_order_id as string | undefined) ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (payment.bookings as any)?.booking_number;
+
+      if (!orderId) {
+        return {
+          success: false,
+          error: "Cashfree Order ID is missing for this transaction.",
+        };
+      }
+
+      // Check order status on Cashfree first to ensure it is eligible
+      try {
+        const cfOrderRes = await cashfree.PGFetchOrder(orderId);
+        const cfOrder = cfOrderRes?.data;
+
+        if (cfOrder && cfOrder.order_status !== "PAID") {
+          return {
+            success: false,
+            error: `Cannot initiate refund: Cashfree order status is "${cfOrder.order_status}". Cashfree only permits refunds on orders that are in "PAID" status.`,
+          };
+        }
+      } catch (orderCheckErr: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const axiosErr = orderCheckErr as any;
+        const status = axiosErr?.response?.status;
+        if (status === 404) {
+          return {
+            success: false,
+            error: `Cashfree order "${orderId}" was not found in your Cashfree (${
+              process.env.CASHFREE_ENV || "sandbox"
+            }) account. Please verify that this order was paid in the current environment.`,
+          };
+        }
+        console.warn(
+          "[Cashfree Refund] Pre-refund order fetch warning:",
+          axiosErr?.response?.data || axiosErr?.message
+        );
+      }
+
+      const cfRefundIdCandidate = `rfnd_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 7)}`;
+
+      // Cashfree Sandbox requires refund_note to be SUCCESS to simulate immediate successful refund.
+      // In Production, pass the admin's actual reason.
+      const isSandbox =
+        (process.env.CASHFREE_ENV || "sandbox").toLowerCase() === "sandbox";
+      const refundNote = isSandbox ? "SUCCESS" : trimmedReason.slice(0, 100);
+
+      try {
+        console.log(
+          `[Cashfree Refund] Calling PGOrderCreateRefund for order: ${orderId}, amount: ₹${amount}, note: ${refundNote}`
+        );
+
+        const cfRes = await cashfree.PGOrderCreateRefund(orderId, {
+          refund_amount: amount,
+          refund_id: cfRefundIdCandidate,
+          refund_note: refundNote,
+          refund_speed: "STANDARD",
+        });
+
+        const refundData = cfRes?.data;
+        cfRefundData = (refundData as Record<string, unknown>) || null;
+        refundId = String(
+          refundData?.cf_refund_id ||
+            refundData?.refund_id ||
+            cfRefundIdCandidate
+        );
+        console.log(
+          `[Cashfree Refund] Refund created successfully on Cashfree:`,
+          refundData
+        );
+      } catch (cfErr: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const axiosErr = cfErr as any;
+        const cfData = axiosErr?.response?.data;
+        const cfErrMsg =
+          cfData?.message ||
+          cfData?.error?.message ||
+          cfData?.sub_code ||
+          axiosErr?.message ||
+          "Cashfree rejected the refund request.";
+        console.error("[Cashfree Refund Error]", {
+          status: axiosErr?.response?.status,
+          data: cfData,
+          message: axiosErr?.message,
+        });
+
+        return {
+          success: false,
+          error: `Cashfree Refund Failed: ${cfErrMsg}`,
+        };
+      }
+    }
+    // ── B. Razorpay Gateway Refund (Legacy Compatibility) ─────────────────────
+    else if (isExplicitRazorpay) {
+      const razorpayKey = process.env.RAZORPAY_KEY_ID;
+      const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
+
       try {
         const auth = Buffer.from(`${razorpayKey}:${razorpaySecret}`).toString(
           "base64"
@@ -160,7 +295,7 @@ export async function initiateRefund(
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              amount: Math.round(amount * 100), // amount in paise
+              amount: Math.round(amount * 100), // paise
               notes: {
                 reason: trimmedReason,
                 admin_id: user.id,
@@ -188,9 +323,18 @@ export async function initiateRefund(
           error: "Failed to connect to Razorpay refund endpoint.",
         };
       }
-    } else {
-      // Dev / Test simulation
-      refundId = `rfnd_sim_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    }
+    // ── C. Offline / Cash Refund (COD reversal) ──────────────────────────────
+    else if (isExplicitCash) {
+      refundId = `rfnd_cash_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 7)}`;
+    }
+    // ── D. Fallback / Test Providers ─────────────────────────────────────────
+    else {
+      refundId = `rfnd_sim_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 7)}`;
     }
 
     // 4. Determine new statuses
@@ -208,6 +352,9 @@ export async function initiateRefund(
       ...existingRefunds,
       {
         refund_id: refundId,
+        cf_refund_id: (cfRefundData?.cf_refund_id as string | undefined) || null,
+        refund_status:
+          (cfRefundData?.refund_status as string | undefined) || "SUCCESS",
         amount,
         reason: trimmedReason,
         processed_at: new Date().toISOString(),
@@ -219,11 +366,13 @@ export async function initiateRefund(
       .from("payments")
       .update({
         status: newPaymentStatus,
+        provider: isCashfree ? "cashfree" : payment.provider,
         metadata: {
           ...currentMeta,
           refunds: updatedRefunds,
           last_refund_id: refundId,
           last_refund_at: new Date().toISOString(),
+          last_cf_refund_data: cfRefundData || null,
         },
         updated_at: new Date().toISOString(),
       })

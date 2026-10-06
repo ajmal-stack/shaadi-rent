@@ -315,9 +315,10 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                 </label>
                 <select
                   value={settings.payment_provider}
-                  onChange={(e) => setSettings({ ...settings, payment_provider: e.target.value as "razorpay" | "stripe" })}
+                  onChange={(e) => setSettings({ ...settings, payment_provider: e.target.value as "cashfree" | "razorpay" | "stripe" })}
                   className={inputClass}
                 >
+                  <option value="cashfree">Cashfree Payments (India UPI / Cards / NetBanking / Wallets)</option>
                   <option value="razorpay">Razorpay (India UPI / Cards / NetBanking)</option>
                   <option value="stripe">Stripe (International & Cards)</option>
                 </select>
@@ -341,7 +342,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
             <div className={toggleRowClass}>
               <div>
                 <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">Automatic Refund Processing</p>
-                <p className="text-xs text-stone-500 dark:text-stone-400">Auto-trigger Razorpay refund on approved dispute settlements.</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400">Auto-trigger payment gateway refund on approved dispute settlements.</p>
               </div>
               <ToggleSwitch
                 checked={settings.auto_refund_enabled}

@@ -59,7 +59,94 @@ export async function POST(req: NextRequest) {
   const type = payload?.type as string | undefined;
   const data = payload?.data as Record<string, unknown> | undefined;
 
-  // We only care about payment events
+  // ── Handle Refund Webhooks ─────────────────────────────────────────────────
+  if (type?.startsWith("REFUND_")) {
+    const refundObj = data?.refund as Record<string, unknown> | undefined;
+    const cfOrderId =
+      (refundObj?.order_id as string | undefined) ||
+      ((data?.order as Record<string, unknown> | undefined)?.order_id as string | undefined);
+    const cfRefundId = refundObj?.cf_refund_id as string | undefined;
+    const refundStatus = refundObj?.refund_status as string | undefined; // SUCCESS | FAILED
+    const refundAmount = Number(refundObj?.refund_amount) || 0;
+
+    if (!cfOrderId) return NextResponse.json({ received: true });
+
+    const admin = createAdminClient();
+    const { data: paymentRow } = await admin
+      .from("payments")
+      .select("id, booking_id, amount, status, metadata")
+      .eq("provider_order_id", cfOrderId)
+      .maybeSingle();
+
+    if (!paymentRow) {
+      console.warn("[CF Webhook] No payment record for refund order:", cfOrderId);
+      return NextResponse.json({ received: true });
+    }
+
+    if (refundStatus === "SUCCESS") {
+      const currentMeta = (paymentRow.metadata as Record<string, unknown>) || {};
+      const existingRefunds = Array.isArray(currentMeta.refunds) ? currentMeta.refunds : [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const previouslyRefunded = existingRefunds.reduce((sum: number, r: any) => sum + (Number(r.amount) || 0), 0);
+      const isFullRefund = (previouslyRefunded + refundAmount) >= paymentRow.amount;
+      const newStatus = isFullRefund ? "refunded" : "partially_refunded";
+
+      // If cfRefundId is already logged, don't duplicate
+      const alreadyLogged = existingRefunds.some(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (r: any) => r.cf_refund_id === cfRefundId || r.refund_id === cfRefundId
+      );
+
+      const updatedRefunds = alreadyLogged
+        ? existingRefunds
+        : [
+            ...existingRefunds,
+            {
+              refund_id: cfRefundId || `cf_rfnd_${Date.now()}`,
+              cf_refund_id: cfRefundId,
+              amount: refundAmount,
+              reason: "Cashfree Webhook Confirmation",
+              processed_at: new Date().toISOString(),
+            },
+          ];
+
+      await admin
+        .from("payments")
+        .update({
+          status: newStatus,
+          provider: "cashfree",
+          metadata: {
+            ...currentMeta,
+            refunds: updatedRefunds,
+            last_refund_id: cfRefundId || currentMeta.last_refund_id,
+            last_refund_at: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", paymentRow.id);
+
+      if (paymentRow.booking_id) {
+        await admin
+          .from("bookings")
+          .update({
+            payment_status: newStatus,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", paymentRow.booking_id);
+
+        await admin.from("booking_events").insert({
+          booking_id: paymentRow.booking_id,
+          status: "refund_processed",
+          note: `Cashfree verified refund of ₹${refundAmount.toLocaleString("en-IN")} [Refund ID: ${cfRefundId || "N/A"}]`,
+        });
+      }
+      console.log(`[CF Webhook] Refund SUCCESS confirmed for order ${cfOrderId}`);
+    }
+
+    return NextResponse.json({ received: true });
+  }
+
+  // We only care about payment events from here
   if (!type?.startsWith("PAYMENT_")) {
     return NextResponse.json({ received: true });
   }

@@ -14,7 +14,7 @@ export interface PlatformSettings {
   min_booking_days_advance: number;
 
   // Payment Gateway & Escrow
-  payment_provider: "razorpay" | "stripe";
+  payment_provider: "cashfree" | "razorpay" | "stripe";
   escrow_release_buffer_days: number;
   auto_refund_enabled: boolean;
 
@@ -37,7 +37,7 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
   security_deposit_multiplier: 1.0,
   cancellation_window_hours: 48,
   min_booking_days_advance: 2,
-  payment_provider: "razorpay",
+  payment_provider: "cashfree",
   escrow_release_buffer_days: 2,
   auto_refund_enabled: true,
   mandatory_kyc_threshold: 5000,

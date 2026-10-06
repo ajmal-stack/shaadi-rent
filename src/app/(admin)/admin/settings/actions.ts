@@ -58,7 +58,7 @@ export async function getSettings(): Promise<PlatformSettings> {
     security_deposit_multiplier: (map.security_deposit_multiplier as number) ?? DEFAULT_SETTINGS.security_deposit_multiplier,
     cancellation_window_hours:   (map.cancellation_window_hours as number)   ?? DEFAULT_SETTINGS.cancellation_window_hours,
     min_booking_days_advance:    (map.min_booking_days_advance as number)    ?? DEFAULT_SETTINGS.min_booking_days_advance,
-    payment_provider:            (map.payment_provider as "razorpay" | "stripe") ?? DEFAULT_SETTINGS.payment_provider,
+    payment_provider:            (map.payment_provider as "cashfree" | "razorpay" | "stripe") ?? DEFAULT_SETTINGS.payment_provider,
     escrow_release_buffer_days:  (map.escrow_release_buffer_days as number)  ?? DEFAULT_SETTINGS.escrow_release_buffer_days,
     auto_refund_enabled:         (map.auto_refund_enabled as boolean)        ?? DEFAULT_SETTINGS.auto_refund_enabled,
     mandatory_kyc_threshold:     (map.mandatory_kyc_threshold as number)     ?? DEFAULT_SETTINGS.mandatory_kyc_threshold,

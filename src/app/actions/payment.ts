@@ -11,6 +11,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { cashfree } from "@/lib/cashfree/client";
 
 export async function confirmPaymentFromReturn(
   bookingId: string,
@@ -40,15 +41,31 @@ export async function confirmPaymentFromReturn(
     })
     .eq("id", bookingId);
 
-  // 2. Update payment record status
+  // 2. Fetch payment transaction details from Cashfree
+  let cfPaymentId: string | null = null;
+  try {
+    const paymentsRes = await cashfree.PGOrderFetchPayments(cfOrderId);
+    const successfulPayment = paymentsRes?.data?.find(
+      (p) => p.payment_status === "SUCCESS"
+    );
+    if (successfulPayment?.cf_payment_id) {
+      cfPaymentId = String(successfulPayment.cf_payment_id);
+    }
+  } catch (err) {
+    console.warn("[confirmPaymentFromReturn] PGOrderFetchPayments warning:", err);
+  }
+
+  // 3. Update payment record status
   await admin
     .from("payments")
     .update({
       status: "successful",
+      provider: "cashfree",
+      provider_order_id: cfOrderId,
+      ...(cfPaymentId ? { provider_payment_id: cfPaymentId } : {}),
       updated_at: new Date().toISOString(),
     })
-    .eq("booking_id", bookingId)
-    .eq("status", "created"); // only update if not already successful
+    .eq("booking_id", bookingId);
 
   // 3. Block the availability window so the calendar shows it as booked
   await admin.from("outfit_availability").insert({
