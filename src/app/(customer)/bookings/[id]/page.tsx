@@ -13,6 +13,9 @@ import { createClient } from "@/lib/supabase/server";
 import { BookingTimeline } from "@/components/booking/BookingTimeline";
 import { CustomerActions } from "@/components/booking/CustomerActions";
 import { RetryPaymentBanner } from "@/components/booking/RetryPaymentBanner";
+import { RentalEventCountdown } from "@/components/booking/RentalEventCountdown";
+import { BookingActionsBar } from "@/components/booking/BookingActionsBar";
+import { DepositRefundCard } from "@/components/booking/DepositRefundCard";
 import { getBookingPaymentSession } from "@/app/actions/payment";
 import type { BookingStatus, DeliveryAddress, Dispute } from "@/types/database";
 
@@ -160,6 +163,14 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
           </span>
         </div>
 
+        {/* ── Live Event Countdown Ribbon ── */}
+        <RentalEventCountdown
+          status={booking.status as BookingStatus}
+          deliveryDate={booking.rental_start_date}
+          returnDate={booking.rental_end_date}
+          eventDate={booking.event_date}
+        />
+
         {/* ── Customer Action Banner ── */}
         {!isTerminal && (
           <CustomerActions
@@ -303,16 +314,33 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
           </div>
         </div>
 
-        {/* ── Booking Progress Timeline ── */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-stone-800 mb-5">Booking Progress</h3>
+        {/* ── Booking Progress Stepper ── */}
+        <div className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="text-sm font-bold text-stone-900">Order Tracking &amp; Delivery Progress</h3>
+              <p className="text-[11px] text-stone-500">Live order status from sanitization to return inspection</p>
+            </div>
+            <span className="text-[11px] font-semibold text-rose-800 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
+              Live Tracker
+            </span>
+          </div>
           <BookingTimeline
             currentStatus={booking.status as BookingStatus}
             deliveryDate={booking.rental_start_date}
             returnDate={booking.rental_end_date}
             eventDate={booking.event_date}
+            securityDeposit={booking.security_deposit}
+            bookingNumber={booking.booking_number}
           />
         </div>
+
+        {/* ── Quick Actions (Care Guide, Receipt & WhatsApp) ── */}
+        <BookingActionsBar
+          booking={booking}
+          outfit={outfit}
+          deliveryAddress={deliveryAddr}
+        />
 
         {/* ── Delivery Address (if available) ── */}
         {deliveryAddr && (
@@ -329,6 +357,13 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
             </div>
           </div>
         )}
+
+        {/* ── Security Deposit Escrow & Refund Transparency ── */}
+        <DepositRefundCard
+          depositAmount={booking.security_deposit}
+          status={booking.status as BookingStatus}
+          paymentStatus={booking.payment_status}
+        />
 
         {/* ── Payment Breakdown ── */}
         <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm space-y-2 text-xs">

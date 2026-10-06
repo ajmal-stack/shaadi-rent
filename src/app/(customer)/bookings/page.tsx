@@ -58,6 +58,18 @@ const STATUS_INFO: Record<
   disputed:         { label: "Disputed", color: "text-orange-800", bg: "bg-orange-50", border: "border-orange-200", icon: AlertCircle, desc: "Dispute under review" },
 };
 
+const STAGE_PROGRESS: Record<string, number> = {
+  pending: 20,
+  confirmed: 35,
+  pickup_scheduled: 50,
+  out_for_delivery: 65,
+  delivered: 80,
+  active: 85,
+  return_scheduled: 90,
+  returned: 95,
+  inspection: 98,
+};
+
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
     day: "numeric",
@@ -231,6 +243,14 @@ export default async function BookingsPage() {
                             <span className="text-[10px] text-stone-400">Total</span>
                             <ChevronRight size={14} className="mt-2 text-stone-400 group-hover:text-rose-600 group-hover:translate-x-0.5 transition-all" />
                           </div>
+                        </div>
+
+                        {/* Live mini progress track */}
+                        <div className="h-1 w-full bg-stone-100 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-rose-700 via-amber-500 to-emerald-600 transition-all duration-300"
+                            style={{ width: `${STAGE_PROGRESS[booking.status] ?? 25}%` }}
+                          />
                         </div>
                       </Link>
                     );

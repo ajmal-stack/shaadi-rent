@@ -247,13 +247,23 @@ export default async function OwnerRequestDetailPage({ params }: Props) {
         </div>
 
         {/* ── Booking Progress ── */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-stone-800 mb-5">Booking Progress</h3>
+        <div className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="text-sm font-bold text-stone-900">Rental Tracking &amp; Milestone Progress</h3>
+              <p className="text-[11px] text-stone-500">Live order status from sanitization to return inspection</p>
+            </div>
+            <span className="text-[11px] font-semibold text-rose-800 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
+              Live Tracker
+            </span>
+          </div>
           <BookingTimeline
             currentStatus={booking.status as BookingStatus}
             deliveryDate={booking.rental_start_date}
             returnDate={booking.rental_end_date}
             eventDate={booking.event_date}
+            securityDeposit={booking.security_deposit}
+            bookingNumber={booking.booking_number}
           />
         </div>
 
