@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { DisputeStatus } from "@/types/database";
+import { notifyDisputeAlert } from "@/lib/notifications";
 
 async function verifyAdmin() {
   const supabase = await createClient();
@@ -31,6 +33,14 @@ export async function resolveDispute(
   const { supabase, error: authError } = await verifyAdmin();
   if (!supabase) return { success: false, error: authError };
 
+  // Fetch booking_id so we can send notifications
+  const admin = createAdminClient();
+  const { data: dispute } = await admin
+    .from("disputes")
+    .select("booking_id, reason")
+    .eq("id", disputeId)
+    .single();
+
   const newStatus: DisputeStatus = action;
 
   const { error } = await supabase
@@ -44,6 +54,15 @@ export async function resolveDispute(
 
   if (error) return { success: false, error: error.message };
 
+  // Notify renter & owner about the dispute resolution update
+  if (dispute?.booking_id) {
+    try {
+      await notifyDisputeAlert(dispute.booking_id, dispute.reason || `Dispute ${action}`);
+    } catch (notifErr) {
+      console.warn("[resolveDispute] Notification error:", notifErr);
+    }
+  }
+
   revalidatePath("/admin/disputes");
   revalidatePath("/admin");
   return { success: true, error: null };
@@ -55,6 +74,14 @@ export async function markDisputeUnderReview(
   const { supabase, error: authError } = await verifyAdmin();
   if (!supabase) return { success: false, error: authError };
 
+  // Fetch booking_id for notification
+  const admin = createAdminClient();
+  const { data: dispute } = await admin
+    .from("disputes")
+    .select("booking_id, reason")
+    .eq("id", disputeId)
+    .single();
+
   const { error } = await supabase
     .from("disputes")
     .update({
@@ -64,6 +91,15 @@ export async function markDisputeUnderReview(
     .eq("id", disputeId);
 
   if (error) return { success: false, error: error.message };
+
+  // Notify parties that the dispute is now under review
+  if (dispute?.booking_id) {
+    try {
+      await notifyDisputeAlert(dispute.booking_id, dispute.reason || "Dispute is under review");
+    } catch (notifErr) {
+      console.warn("[markDisputeUnderReview] Notification error:", notifErr);
+    }
+  }
 
   revalidatePath("/admin/disputes");
   return { success: true, error: null };

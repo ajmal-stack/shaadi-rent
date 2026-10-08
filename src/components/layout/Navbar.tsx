@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -14,11 +14,21 @@ import {
   LayoutDashboard,
   ShieldAlert,
   Menu,
+  Bell,
+  CheckCheck,
 } from "lucide-react";
+import { toast } from "sonner";
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { MobileMenu, AuthUser } from "./MobileMenu";
 import { SearchModal } from "./SearchModal";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { signOut } from "@/app/(public)/auth/actions";
+import {
+  getUserNotificationsAction,
+  markNotificationReadAction,
+  markAllNotificationsReadAction,
+  type UserNotificationItem,
+} from "@/app/(customer)/account/actions";
 
 interface NavbarProps {
   user: AuthUser | null;
@@ -29,9 +39,13 @@ export function Navbar({ user }: NavbarProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [navNotifications, setNavNotifications] = useState<UserNotificationItem[]>([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const notifMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close account dropdown on outside click
+  // Close account & notif dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -40,10 +54,186 @@ export function Navbar({ user }: NavbarProps) {
       ) {
         setIsAccountMenuOpen(false);
       }
+      if (
+        notifMenuRef.current &&
+        !notifMenuRef.current.contains(e.target as Node)
+      ) {
+        setIsNotifOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Fetch unread notifications
+  const fetchNotifs = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await getUserNotificationsAction();
+      if (res.success && res.notifications) {
+        setNavNotifications(res.notifications.slice(0, 8));
+        setUnreadNotifCount(res.unreadCount || 0);
+      }
+    } catch (err) {
+      console.warn("Could not load nav notifications:", err);
+    }
+  }, [user]);
+
+  // Handler when user toggles or opens notification bell
+  // Instantly marks all loaded notifications as read in both local UI and database
+  const handleToggleNotif = async () => {
+    const nextState = !isNotifOpen;
+    setIsNotifOpen(nextState);
+
+    if (nextState && unreadNotifCount > 0) {
+      // 1. Immediately zero-out unread badge & mark read locally
+      setUnreadNotifCount(0);
+      setNavNotifications((prev) =>
+        prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
+      );
+
+      // 2. Persist to database in background
+      try {
+        await markAllNotificationsReadAction();
+      } catch (err) {
+        console.warn("Could not mark all notifications as read:", err);
+      }
+    }
+  };
+
+  // Explicit mark-all-read button inside dropdown
+  const handleMarkAllRead = async () => {
+    setUnreadNotifCount(0);
+    setNavNotifications((prev) =>
+      prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
+    );
+    try {
+      await markAllNotificationsReadAction();
+      toast.success("All notifications marked as read");
+    } catch {
+      toast.error("Failed to mark all as read");
+    }
+  };
+
+  // Handler when clicking a specific notification item
+  const handleNotificationItemClick = async (notif: UserNotificationItem) => {
+    setIsNotifOpen(false);
+    if (!notif.read_at) {
+      setNavNotifications((prev) =>
+        prev.map((n) => (n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n))
+      );
+      setUnreadNotifCount((prev) => Math.max(0, prev - 1));
+      try {
+        await markNotificationReadAction(notif.id);
+      } catch (err) {
+        console.warn("Could not mark notification as read:", err);
+      }
+    }
+  };
+
+  // Live Realtime notifications subscription + Active background polling
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let isMounted = true;
+
+    // Initial fetch
+    fetchNotifs();
+
+    // Supabase Realtime channel subscription (Postgres WAL changes + Broadcast events)
+    const supabase = createBrowserSupabaseClient();
+    const channelName = `realtime-notifications-${user.id}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newNotif = payload.new as UserNotificationItem;
+          if (!newNotif || !isMounted) return;
+
+          setNavNotifications((prev) => {
+            const exists = prev.some((n) => n.id === newNotif.id);
+            if (exists) return prev;
+            return [newNotif, ...prev].slice(0, 8);
+          });
+          setUnreadNotifCount((prev) => prev + 1);
+
+          toast(newNotif.title, {
+            description: newNotif.message,
+            duration: 6000,
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as UserNotificationItem;
+          if (!updated || !isMounted) return;
+
+          setNavNotifications((prev) =>
+            prev.map((n) => (n.id === updated.id ? updated : n))
+          );
+          if (updated.read_at) {
+            setUnreadNotifCount((prev) => Math.max(0, prev - 1));
+          }
+        }
+      )
+      .on(
+        "broadcast",
+        { event: "notification_created" },
+        (response) => {
+          const newNotif = response.payload as UserNotificationItem;
+          if (!newNotif || !isMounted) return;
+
+          setNavNotifications((prev) => {
+            const exists = prev.some((n) => n.id === newNotif.id);
+            if (exists) return prev;
+            return [newNotif, ...prev].slice(0, 8);
+          });
+          setUnreadNotifCount((prev) => prev + 1);
+
+          toast(newNotif.title, {
+            description: newNotif.message,
+            duration: 6000,
+          });
+        }
+      )
+      .subscribe();
+
+    // Active polling every 10s as a rock-solid safety net
+    const pollInterval = setInterval(() => {
+      fetchNotifs();
+    }, 10000);
+
+    // Tab visibility and focus sync
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        fetchNotifs();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    window.addEventListener("focus", handleVisibilityOrFocus);
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+      clearInterval(pollInterval);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+    };
+  }, [user?.id, fetchNotifs]);
 
   // Keyboard shortcut (⌘K / Ctrl+K) to open search
   useEffect(() => {
@@ -205,6 +395,101 @@ export function Navbar({ user }: NavbarProps) {
                 <span className="hidden lg:inline">Wishlist</span>
               </Link>
 
+              {/* 2.8. Notifications Bell (Signed-in users) */}
+              {user && (
+                <div className="relative shrink-0" ref={notifMenuRef}>
+                  <button
+                    type="button"
+                    onClick={handleToggleNotif}
+                    title="Rental Notifications"
+                    aria-label="Rental Notifications"
+                    className="relative flex items-center justify-center rounded-xl p-2 text-gray-700 hover:bg-rose-50/70 hover:text-rose-800 transition-colors cursor-pointer"
+                  >
+                    <Bell size={18} className="text-rose-700 shrink-0" />
+                    {unreadNotifCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white ring-2 ring-white animate-pulse">
+                        {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Notifications Popover */}
+                  {isNotifOpen && (
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-rose-100/90 bg-white p-3 shadow-2xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100 z-50">
+                      <div className="flex items-center justify-between border-b border-rose-100/60 pb-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-gray-900">Notifications</h4>
+                          {unreadNotifCount > 0 && (
+                            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-900">
+                              {unreadNotifCount} new
+                            </span>
+                          )}
+                        </div>
+                        {navNotifications.some((n) => !n.read_at) && (
+                          <button
+                            type="button"
+                            onClick={handleMarkAllRead}
+                            className="flex items-center gap-1 text-[11px] font-medium text-rose-800 hover:text-rose-950 hover:underline cursor-pointer"
+                          >
+                            <CheckCheck size={13} />
+                            <span>Mark all read</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="py-2 max-h-72 overflow-y-auto divide-y divide-stone-100">
+                        {navNotifications.length === 0 ? (
+                          <div className="py-6 text-center text-xs text-stone-400">
+                            No notifications yet
+                          </div>
+                        ) : (
+                          navNotifications.map((notif) => (
+                            <Link
+                              key={notif.id}
+                              href={notif.booking_id ? `/bookings/${notif.booking_id}` : "/bookings"}
+                              onClick={() => handleNotificationItemClick(notif)}
+                              className={`block p-2.5 rounded-xl transition-colors hover:bg-rose-50/50 ${
+                                !notif.read_at ? "bg-rose-50/40" : ""
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-xs font-semibold text-gray-900 line-clamp-1">
+                                  {notif.title}
+                                </p>
+                                {!notif.read_at && (
+                                  <span className="h-1.5 w-1.5 rounded-full bg-rose-600 shrink-0 mt-1" />
+                                )}
+                              </div>
+                              <p className="text-[11px] text-stone-500 line-clamp-2 mt-0.5 leading-snug">
+                                {notif.message}
+                              </p>
+                              <span className="text-[10px] text-stone-400 mt-1 block">
+                                {new Date(notif.created_at).toLocaleDateString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </Link>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="border-t border-rose-100/60 pt-2 text-center">
+                        <Link
+                          href="/bookings"
+                          onClick={() => setIsNotifOpen(false)}
+                          className="text-xs font-semibold text-rose-900 hover:text-rose-950 block py-1"
+                        >
+                          View all My Bookings →
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* 3. Account / Login */}
               {user ? (
                 <div className="relative shrink-0" ref={accountMenuRef}>
@@ -260,6 +545,23 @@ export function Navbar({ user }: NavbarProps) {
                           <User size={15} className="text-rose-700" />
                           <span>My Account</span>
                         </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAccountMenuOpen(false);
+                            handleToggleNotif();
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-900 transition-colors text-left cursor-pointer"
+                        >
+                          <Bell size={15} className="text-rose-700 shrink-0" />
+                          <span>Notifications &amp; Alerts</span>
+                          {unreadNotifCount > 0 && (
+                            <span className="ml-auto rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-900">
+                              {unreadNotifCount}
+                            </span>
+                          )}
+                        </button>
 
                         <Link
                           href="/bookings"
@@ -361,7 +663,7 @@ export function Navbar({ user }: NavbarProps) {
               </Link>
             </div>
 
-            {/* Right Action Icons: 🔍 Search + ❤️ Wishlist + 👤 Profile / Account Badge */}
+            {/* Right Action Icons: 🔍 Search + 🔔 Notifications + ❤️ Wishlist + 👤 Profile / Account Badge */}
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* Search Trigger */}
               <button
@@ -372,6 +674,24 @@ export function Navbar({ user }: NavbarProps) {
               >
                 <Search size={19} strokeWidth={2.2} />
               </button>
+
+              {/* Mobile Notification Bell (Signed-in users) */}
+              {user && (
+                <button
+                  type="button"
+                  onClick={handleToggleNotif}
+                  title="Rental Notifications"
+                  aria-label="Rental Notifications"
+                  className="relative flex h-9 w-9 items-center justify-center rounded-xl text-gray-700 hover:bg-rose-50 hover:text-rose-800 transition-colors focus:outline-none active:scale-95 shrink-0 cursor-pointer"
+                >
+                  <Bell size={19} strokeWidth={2.2} className="text-rose-700 shrink-0" />
+                  {unreadNotifCount > 0 && (
+                    <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-bold text-white ring-2 ring-white animate-pulse">
+                      {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+                    </span>
+                  )}
+                </button>
+              )}
 
               {/* Wishlist Link */}
               <Link
@@ -423,6 +743,91 @@ export function Navbar({ user }: NavbarProps) {
             </div>
           </div>
         </div>
+
+        {/* Mobile Notifications Popover when open on mobile (< md) */}
+        {isNotifOpen && (
+          <div className="block md:hidden border-t border-rose-100 bg-white p-3 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="flex items-center justify-between border-b border-rose-100/60 pb-2 px-1">
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-bold text-gray-900">Notifications</h4>
+                {unreadNotifCount > 0 && (
+                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-900">
+                    {unreadNotifCount} new
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {navNotifications.some((n) => !n.read_at) && (
+                  <button
+                    type="button"
+                    onClick={handleMarkAllRead}
+                    className="flex items-center gap-1 text-[11px] font-medium text-rose-800 hover:text-rose-950 hover:underline cursor-pointer"
+                  >
+                    <CheckCheck size={13} />
+                    <span>Mark all read</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsNotifOpen(false)}
+                  className="text-xs font-bold text-gray-400 hover:text-gray-700 px-1"
+                  aria-label="Close notifications"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="py-2 max-h-72 overflow-y-auto divide-y divide-stone-100">
+              {navNotifications.length === 0 ? (
+                <div className="py-6 text-center text-xs text-stone-400">
+                  No notifications yet
+                </div>
+              ) : (
+                navNotifications.map((notif) => (
+                  <Link
+                    key={notif.id}
+                    href={notif.booking_id ? `/bookings/${notif.booking_id}` : "/bookings"}
+                    onClick={() => handleNotificationItemClick(notif)}
+                    className={`block p-2.5 rounded-xl transition-colors hover:bg-rose-50/50 ${
+                      !notif.read_at ? "bg-rose-50/40" : ""
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-semibold text-gray-900 line-clamp-1">
+                        {notif.title}
+                      </p>
+                      {!notif.read_at && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-rose-600 shrink-0 mt-1" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-stone-500 line-clamp-2 mt-0.5 leading-snug">
+                      {notif.message}
+                    </p>
+                    <span className="text-[10px] text-stone-400 mt-1 block">
+                      {new Date(notif.created_at).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </Link>
+                ))
+              )}
+            </div>
+
+            <div className="border-t border-rose-100/60 pt-2 text-center">
+              <Link
+                href="/bookings"
+                onClick={() => setIsNotifOpen(false)}
+                className="text-xs font-semibold text-rose-900 hover:text-rose-950 block py-1"
+              >
+                View all My Bookings →
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Mobile Drawer (Menu + Full Profile Card & Navigation) */}
@@ -430,6 +835,8 @@ export function Navbar({ user }: NavbarProps) {
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         user={user}
+        onOpenNotifications={handleToggleNotif}
+        unreadNotifCount={unreadNotifCount}
       />
 
       {/* Mobile-friendly Bottom Navigation Bar */}

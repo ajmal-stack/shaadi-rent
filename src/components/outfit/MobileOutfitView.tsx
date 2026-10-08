@@ -20,15 +20,16 @@ import {
   Truck,
   RotateCcw,
   Ruler,
-  Scissors,
   Check,
+  Star,
 } from "lucide-react";
+import { OutfitReviews, OutfitReviewItem } from "./OutfitReviews";
 import { toast } from "sonner";
 import { DynamicAvailabilityCalendar } from "./DynamicAvailabilityCalendar";
 import { CheckDatesModal } from "./CheckDatesModal";
 import { ShareModal } from "./ShareModal";
 import { AvailabilityWindow } from "./OutfitAvailability";
-import { MeasurementsData } from "./OutfitMeasurements";
+import { MeasurementsData, OutfitMeasurements } from "./OutfitMeasurements";
 import { OutfitCardData, OutfitCard } from "@/components/browse/OutfitCard";
 import { getOutfitImageUrl } from "@/lib/utils/image";
 import { toggleWishlist } from "@/app/actions/wishlist";
@@ -69,6 +70,8 @@ export interface MobileOutfitViewProps {
   initialWishlisted?: boolean;
   similarOutfits?: OutfitCardData[];
   wishlistedIds?: string[];
+  reviews?: OutfitReviewItem[];
+  avgRating?: number | null;
 }
 
 export function MobileOutfitView({
@@ -77,6 +80,8 @@ export function MobileOutfitView({
   initialWishlisted = false,
   similarOutfits = [],
   wishlistedIds = [],
+  reviews = [],
+  avgRating = null,
 }: MobileOutfitViewProps) {
   const router = useRouter();
 
@@ -415,12 +420,25 @@ export function MobileOutfitView({
                 {outfit.brand || outfit.category?.name || "Designer Wedding Couture"}
               </span>
 
-              {outfit.city && (
-                <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
-                  <MapPin size={11} className="text-rose-700 shrink-0" />
-                  <span>{outfit.city}</span>
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {reviews.length > 0 && avgRating !== null && (
+                  <a
+                    href="#outfit-reviews"
+                    className="flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full"
+                  >
+                    <Star size={11} className="fill-amber-400 text-amber-500" />
+                    <span>{avgRating.toFixed(1)}</span>
+                    <span className="text-amber-700 font-normal">({reviews.length})</span>
+                  </a>
+                )}
+
+                {outfit.city && (
+                  <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
+                    <MapPin size={11} className="text-rose-700 shrink-0" />
+                    <span>{outfit.city}</span>
+                  </span>
+                )}
+              </div>
             </div>
 
             <h1 className="font-display text-xl font-bold text-gray-900 leading-tight mt-1">
@@ -572,46 +590,11 @@ export function MobileOutfitView({
             </button>
 
             {openSections.measurements && (
-              <div className="px-4 pb-4 pt-2 text-xs text-gray-600 space-y-3 border-t border-gray-50">
-                {measurements ? (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    {measurements.bust && (
-                      <div className="rounded-xl bg-gray-50 p-2 border border-gray-100">
-                        <span className="text-[10px] text-gray-400 block font-bold">Bust / Chest</span>
-                        <span className="font-bold text-gray-900">{measurements.bust}&quot;</span>
-                      </div>
-                    )}
-                    {measurements.waist && (
-                      <div className="rounded-xl bg-gray-50 p-2 border border-gray-100">
-                        <span className="text-[10px] text-gray-400 block font-bold">Waist</span>
-                        <span className="font-bold text-gray-900">{measurements.waist}&quot;</span>
-                      </div>
-                    )}
-                    {measurements.hip && (
-                      <div className="rounded-xl bg-gray-50 p-2 border border-gray-100">
-                        <span className="text-[10px] text-gray-400 block font-bold">Hips</span>
-                        <span className="font-bold text-gray-900">{measurements.hip}&quot;</span>
-                      </div>
-                    )}
-                    {measurements.length && (
-                      <div className="rounded-xl bg-gray-50 p-2 border border-gray-100">
-                        <span className="text-[10px] text-gray-400 block font-bold">Length</span>
-                        <span className="font-bold text-gray-900">{measurements.length}&quot;</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500">
-                    Standard Size {outfit.size ?? "Free Size"}. Fits true to Indian couture sizing.
-                  </p>
-                )}
-
-                <div className="rounded-2xl bg-amber-50/80 p-3 border border-amber-200/70 text-[11px] text-amber-950 flex items-start gap-2">
-                  <Scissors size={14} className="text-amber-800 shrink-0 mt-0.5" />
-                  <p>
-                    Every rental includes our <strong>Complimentary Fit Assist Kit</strong> (temporary stitch tape &amp; micro-adjust pins) with zero garment damage.
-                  </p>
-                </div>
+              <div className="border-t border-gray-50">
+                <OutfitMeasurements
+                  measurements={outfit.measurements}
+                  size={outfit.size}
+                />
               </div>
             )}
           </div>
@@ -704,6 +687,11 @@ export function MobileOutfitView({
               </div>
             )}
           </div>
+        </div>
+
+        {/* ── 5.5. CUSTOMER REVIEWS & RATINGS ──────────────────────────────── */}
+        <div className="pt-2">
+          <OutfitReviews reviews={reviews} avgRating={avgRating} />
         </div>
 
         {/* ── 6. SIMILAR OUTFITS CAROUSEL ──────────────────────────────────── */}

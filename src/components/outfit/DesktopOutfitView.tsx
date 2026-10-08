@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Sparkles, Package } from "lucide-react";
+import { ChevronRight, Sparkles, Package, Star } from "lucide-react";
 import { OutfitGallery } from "./OutfitGallery";
 import { OutfitMeasurements, MeasurementsData } from "./OutfitMeasurements";
-import { OutfitAvailability, AvailabilityWindow } from "./OutfitAvailability";
+import type { AvailabilityWindow } from "./OutfitAvailability";
 import { OutfitActionCard } from "./OutfitActionCard";
 import { SimilarOutfits } from "./SimilarOutfits";
+import { OutfitReviews, OutfitReviewItem } from "./OutfitReviews";
 import type { OutfitCardData } from "@/components/browse/OutfitCard";
 
 export interface DesktopOutfitViewProps {
@@ -46,6 +47,8 @@ export interface DesktopOutfitViewProps {
   primaryImageUrl?: string;
   similarOutfits: OutfitCardData[];
   wishlistedIds: string[];
+  reviews?: OutfitReviewItem[];
+  avgRating?: number | null;
 }
 
 export function DesktopOutfitView({
@@ -57,6 +60,8 @@ export function DesktopOutfitView({
   primaryImageUrl,
   similarOutfits,
   wishlistedIds,
+  reviews = [],
+  avgRating = null,
 }: DesktopOutfitViewProps) {
   // Shared wedding event date between left availability calendar and right booking action card
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -105,10 +110,25 @@ export function DesktopOutfitView({
 
             {/* 2. Garment Story & Description */}
             <div className="rounded-3xl border border-rose-100/80 bg-white p-6 sm:p-8 shadow-xs space-y-4">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-0.5 text-xs font-semibold text-rose-800">
-                <Sparkles size={12} className="text-amber-600" />
-                Couture Details
-              </span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-0.5 text-xs font-semibold text-rose-800">
+                  <Sparkles size={12} className="text-amber-600" />
+                  Couture Details
+                </span>
+
+                {reviews.length > 0 && avgRating !== null && (
+                  <a
+                    href="#outfit-reviews"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/80 px-2.5 py-0.5 text-xs font-semibold text-amber-900 hover:bg-amber-100/80 transition-colors"
+                  >
+                    <Star size={12} className="fill-amber-400 text-amber-500" />
+                    <span>{avgRating.toFixed(1)}</span>
+                    <span className="text-amber-700 font-normal">
+                      ({reviews.length} {reviews.length === 1 ? "review" : "reviews"})
+                    </span>
+                  </a>
+                )}
+              </div>
 
               <h2 className="font-display text-xl sm:text-2xl font-bold text-stone-900">
                 Design &amp; Craftsmanship
@@ -156,14 +176,7 @@ export function DesktopOutfitView({
               size={outfit.size}
             />
 
-            {/* 4. Left Availability Schedule (In live sync with booking card) */}
-            <OutfitAvailability
-              availability={availability}
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-            />
-
-            {/* 5. Safe Owner & Location Context */}
+            {/* 4. Safe Owner & Location Context */}
             <div className="rounded-3xl border border-rose-100/80 bg-white p-6 sm:p-8 shadow-xs space-y-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-900">
@@ -183,10 +196,13 @@ export function DesktopOutfitView({
                 This piece is listed by a verified boutique partner in our luxury rental network. Every dispatch is backed by the <strong className="text-stone-900">ShaadiRent Quality Shield</strong> with secure insured transit and doorstep exchange if fit issues arise.
               </p>
             </div>
+
+            {/* 5. Customer Reviews & Ratings */}
+            <OutfitReviews reviews={reviews} avgRating={avgRating} />
           </div>
 
           {/* Right Column (Sticky Action Card with Embedded Live Dynamic Calendar) */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-5 lg:sticky lg:top-20 xl:top-24 self-start">
             <OutfitActionCard
               outfit={{
                 id: outfit.id,

@@ -133,7 +133,15 @@ export async function createDispute(
     created_by: user.id,
   });
 
-  // 6. Revalidate cache
+  // 6. Trigger transactional dispute alerts
+  try {
+    const { notifyDisputeAlert } = await import("@/lib/notifications");
+    await notifyDisputeAlert(bookingId, `${trimmedReason}${claimNote}`);
+  } catch (notifErr) {
+    console.warn("[createDispute] Notification error:", notifErr);
+  }
+
+  // 7. Revalidate cache
   revalidatePath(`/bookings/${bookingId}`);
   revalidatePath("/bookings");
   revalidatePath("/admin/disputes");

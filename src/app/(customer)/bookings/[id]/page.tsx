@@ -16,7 +16,9 @@ import { RetryPaymentBanner } from "@/components/booking/RetryPaymentBanner";
 import { RentalEventCountdown } from "@/components/booking/RentalEventCountdown";
 import { BookingActionsBar } from "@/components/booking/BookingActionsBar";
 import { DepositRefundCard } from "@/components/booking/DepositRefundCard";
+import { CompletedBookingReviewCard } from "@/components/booking/CompletedBookingReviewCard";
 import { getBookingPaymentSession } from "@/app/actions/payment";
+import { getBookingReview } from "@/app/actions/review";
 import type { BookingStatus, DeliveryAddress, Dispute } from "@/types/database";
 
 export const metadata: Metadata = {
@@ -133,6 +135,11 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
     booking.payment_status !== "paid" && booking.status !== "cancelled"
       ? await getBookingPaymentSession(id)
       : null;
+
+  // Fetch customer review if rental is completed
+  const { review: existingReview } = isCompleted
+    ? await getBookingReview(id)
+    : { review: null };
 
   return (
     <div className="min-h-screen bg-stone-50/50 py-8 sm:py-12">
@@ -408,15 +415,13 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
           </div>
         </div>
 
-        {/* ── Completed — Review Prompt ── */}
+        {/* ── Completed — Review & Feedback Section ── */}
         {isCompleted && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 text-sm space-y-2">
-            <p className="font-bold text-amber-900">🌟 How was your experience?</p>
-            <p className="text-xs text-amber-800 leading-relaxed">
-              Your booking is complete! Reviews help other brides &amp; grooms make better decisions.
-              Review feature coming soon.
-            </p>
-          </div>
+          <CompletedBookingReviewCard
+            bookingId={booking.id}
+            outfitTitle={outfit?.title ?? "Outfit"}
+            existingReview={existingReview}
+          />
         )}
 
         {/* ── Support Note ── */}

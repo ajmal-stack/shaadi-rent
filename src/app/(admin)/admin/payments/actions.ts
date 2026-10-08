@@ -373,7 +373,7 @@ export async function initiateRefund(
           last_refund_id: refundId,
           last_refund_at: new Date().toISOString(),
           last_cf_refund_data: cfRefundData || null,
-        },
+        } as any,
         updated_at: new Date().toISOString(),
       })
       .eq("id", paymentId);

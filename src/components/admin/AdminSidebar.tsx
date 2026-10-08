@@ -17,6 +17,7 @@ import {
   Star,
   Settings,
   HelpCircle,
+  Megaphone,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -134,6 +135,11 @@ function getNavGroups(pendingCount?: number): NavGroupConfig[] {
     {
       title: "Platform",
       items: [
+        {
+          href: "/admin/notifications",
+          label: "Broadcasts & Offers",
+          icon: Megaphone,
+        },
         {
           href: "/admin/reviews",
           label: "Reviews",

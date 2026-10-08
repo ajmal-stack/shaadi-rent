@@ -96,6 +96,7 @@ export type Database = {
           verification_status: VerificationStatus;
           notification_prefs: Json | null;
           is_suspended: boolean;
+          saved_address?: DeliveryAddress | Json | null;
           created_at: string;
           updated_at: string;
         };
@@ -112,6 +113,7 @@ export type Database = {
           verification_status?: VerificationStatus;
           notification_prefs?: Json | null;
           is_suspended?: boolean;
+          saved_address?: DeliveryAddress | Json | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -128,6 +130,7 @@ export type Database = {
           verification_status?: VerificationStatus;
           notification_prefs?: Json | null;
           is_suspended?: boolean;
+          saved_address?: DeliveryAddress | Json | null;
           updated_at?: string;
         };
         Relationships: [
@@ -941,6 +944,117 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+
+      // ── notifications ────────────────────────────────────────────────────────
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          booking_id: string | null;
+          event: string;
+          title: string;
+          message: string;
+          channels: Json;
+          delivery_status: Json;
+          metadata: Json | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          booking_id?: string | null;
+          event: string;
+          title: string;
+          message: string;
+          channels?: Json;
+          delivery_status?: Json;
+          metadata?: Json | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          booking_id?: string | null;
+          event?: string;
+          title?: string;
+          message?: string;
+          channels?: Json;
+          delivery_status?: Json;
+          metadata?: Json | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_booking_id_fkey";
+            columns: ["booking_id"];
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+
+      // ── broadcast_campaigns ──────────────────────────────────────────────────
+      broadcast_campaigns: {
+        Row: {
+          id: string;
+          title: string;
+          message: string;
+          offer_code: string | null;
+          discount_percent: number | null;
+          target_audience: string;
+          channels: Json;
+          action_url: string | null;
+          recipients_count: number;
+          created_by: string | null;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          message: string;
+          offer_code?: string | null;
+          discount_percent?: number | null;
+          target_audience?: string;
+          channels?: Json;
+          action_url?: string | null;
+          recipients_count?: number;
+          created_by?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          message?: string;
+          offer_code?: string | null;
+          discount_percent?: number | null;
+          target_audience?: string;
+          channels?: Json;
+          action_url?: string | null;
+          recipients_count?: number;
+          created_by?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_campaigns_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
 

@@ -1,11 +1,13 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { MeasurementsData } from "@/components/outfit/OutfitMeasurements";
 import { AvailabilityWindow } from "@/components/outfit/OutfitAvailability";
 import { OutfitCardData } from "@/components/browse/OutfitCard";
 import { MobileOutfitView } from "@/components/outfit/MobileOutfitView";
 import { DesktopOutfitView } from "@/components/outfit/DesktopOutfitView";
+import { OutfitReviewItem } from "@/components/outfit/OutfitReviews";
 import { getOutfitImageUrl } from "@/lib/utils/image";
 
 interface OutfitDetailPageProps {
@@ -291,6 +293,40 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
     }
   }
 
+  // Fetch reviews for this outfit
+  const admin = createAdminClient();
+  const { data: rawReviews } = await admin
+    .from("reviews")
+    .select(
+      `
+      id,
+      rating,
+      comment,
+      created_at,
+      profiles!reviews_reviewer_id_fkey ( id, full_name, avatar_url )
+    `
+    )
+    .eq("outfit_id", outfit.id)
+    .order("created_at", { ascending: false });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reviews: OutfitReviewItem[] = (rawReviews ?? []).map((r: any) => ({
+    id: r.id as string,
+    rating: r.rating as number,
+    comment: r.comment as string | null,
+    created_at: r.created_at as string,
+    reviewerName:
+      (r.profiles ?? r["profiles!reviews_reviewer_id_fkey"])?.full_name ||
+      "Verified Renter",
+    reviewerAvatar:
+      (r.profiles ?? r["profiles!reviews_reviewer_id_fkey"])?.avatar_url || null,
+  }));
+
+  const avgRating =
+    reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      : null;
+
   return (
     <>
       {/* ── Mobile Native View (< lg) ── */}
@@ -320,6 +356,8 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
           initialWishlisted={isOutfitWishlisted}
           similarOutfits={allSimilarOutfits}
           wishlistedIds={wishlistedIds}
+          reviews={reviews}
+          avgRating={avgRating}
         />
       </div>
 
@@ -351,6 +389,8 @@ export default async function OutfitDetailPage({ params }: OutfitDetailPageProps
           primaryImageUrl={primaryImageUrl}
           similarOutfits={allSimilarOutfits}
           wishlistedIds={wishlistedIds}
+          reviews={reviews}
+          avgRating={avgRating}
         />
       </div>
     </>

@@ -16,6 +16,7 @@ import {
   ChevronRight,
   LayoutDashboard,
   ShieldAlert,
+  Bell,
 } from "lucide-react";
 import { signOut } from "@/app/(public)/auth/actions";
 
@@ -31,9 +32,17 @@ interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
   user: AuthUser | null;
+  onOpenNotifications?: () => void;
+  unreadNotifCount?: number;
 }
 
-export function MobileMenu({ isOpen, onClose, user }: MobileMenuProps) {
+export function MobileMenu({
+  isOpen,
+  onClose,
+  user,
+  onOpenNotifications,
+  unreadNotifCount = 0,
+}: MobileMenuProps) {
   const close = useCallback(() => onClose(), [onClose]);
 
   // Lock scroll when drawer is open
@@ -276,10 +285,42 @@ export function MobileMenu({ isOpen, onClose, user }: MobileMenuProps) {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100/70 text-rose-700">
                   <User size={18} />
                 </div>
-                <span className="font-medium">My Profile & Settings</span>
+                <span className="font-medium">My Profile &amp; Settings</span>
                 <ChevronRight size={16} className="ml-auto text-gray-400" />
               </Link>
             </li>
+
+            {/* 5.5. Notifications & Alerts */}
+            {user && (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    close();
+                    if (onOpenNotifications) {
+                      onOpenNotifications();
+                    }
+                  }}
+                  className="flex w-full items-center gap-3.5 rounded-xl px-3.5 py-3 text-gray-700 transition-all hover:bg-rose-50 hover:text-rose-900 active:scale-[0.98] text-left cursor-pointer"
+                >
+                  <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100/70 text-rose-700 shrink-0">
+                    <Bell size={18} />
+                    {unreadNotifCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-bold text-white">
+                        {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-medium">Notifications &amp; Alerts</span>
+                  {unreadNotifCount > 0 && (
+                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-900">
+                      {unreadNotifCount} new
+                    </span>
+                  )}
+                  <ChevronRight size={16} className="ml-auto text-gray-400" />
+                </button>
+              </li>
+            )}
 
             {/* 6. If Owner: Owner Dashboard */}
             {user?.role === "owner" && (

@@ -310,3 +310,159 @@ export async function deleteAccountAction(): Promise<ActionResult> {
 
   return { success: true };
 }
+
+// ── Transactional Notifications Actions (Feature 7) ──────────────────────────
+
+export interface UserNotificationItem {
+  id: string;
+  booking_id: string | null;
+  event: string;
+  title: string;
+  message: string;
+  channels: string[];
+  delivery_status: Record<string, any>;
+  metadata: Record<string, any> | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+export async function getUserNotificationsAction(): Promise<{
+  success: boolean;
+  notifications?: UserNotificationItem[];
+  unreadCount?: number;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("notifications")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  if (error) {
+    console.error("[getUserNotificationsAction] Error:", error);
+    return { success: true, notifications: [], unreadCount: 0 };
+  }
+
+  const notifications = (data || []) as unknown as UserNotificationItem[];
+  const unreadCount = notifications.filter((n) => !n.read_at).length;
+
+  return { success: true, notifications, unreadCount };
+}
+
+export async function markNotificationReadAction(notificationId: string): Promise<{ success: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { success: false };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", notificationId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("[markNotificationReadAction] Error:", error);
+    return { success: false };
+  }
+
+  return { success: true };
+}
+
+export async function markAllNotificationsReadAction(): Promise<{ success: boolean; count?: number }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { success: false };
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .is("read_at", null)
+    .select("id");
+
+  if (error) {
+    console.error("[markAllNotificationsReadAction] Error:", error);
+    return { success: false };
+  }
+
+  return { success: true, count: data?.length || 0 };
+}
+
+export async function sendTestNotificationAction(): Promise<{
+  success: boolean;
+  error?: string;
+  report?: Record<string, unknown>;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authErr,
+  } = await supabase.auth.getUser();
+
+  if (authErr || !user) return { success: false, error: "Not authenticated." };
+
+  const admin = createAdminClient();
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id, full_name, email, phone, notification_prefs")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) return { success: false, error: "Profile not found." };
+
+  const { dispatchNotification } = await import("@/lib/notifications");
+
+  const recipient = {
+    userId: user.id,
+    name: (profile.full_name as string | null) || "User",
+    email: (profile.email as string | null) || null,
+    phone: (profile.phone as string | null) || null,
+    role: "renter" as const,
+    notificationPrefs: (profile.notification_prefs as {
+      email_bookings?: boolean;
+      sms_alerts?: boolean;
+      whatsapp_updates?: boolean;
+      promotions?: boolean;
+    } | null) || null,
+  };
+
+  const testData = {
+    bookingId: undefined,
+    bookingNumber: "TEST-0000",
+    outfitId: "test-outfit-id",
+    outfitTitle: "ShaadiRent Notification Test",
+    rentalStartDate: new Date().toISOString().split("T")[0],
+    rentalEndDate: new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0],
+    rentalAmount: 5000,
+    securityDeposit: 2000,
+    totalAmount: 7000,
+  };
+
+  const report = await dispatchNotification({
+    event: "test_notification",
+    recipient,
+    data: testData,
+  });
+
+  return { success: true, report: report as Record<string, unknown> };
+}

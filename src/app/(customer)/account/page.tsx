@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getSavedDeliveryAddress } from "@/app/actions/address";
 import {
   ProfileClient,
   type ProfileData,
@@ -24,6 +25,9 @@ export default async function AccountPage() {
   if (!user || userError) {
     redirect("/auth/login?next=/account");
   }
+
+  // Fetch saved delivery address with fallback hierarchy
+  const savedAddressRes = await getSavedDeliveryAddress();
 
   // Fetch full profile from Supabase
   const { data: profile } = await supabase
@@ -125,6 +129,7 @@ export default async function AccountPage() {
       initialProfile={profileData}
       bookings={bookings}
       outfitCount={outfitCount}
+      initialSavedAddress={savedAddressRes.address}
     />
   );
 }

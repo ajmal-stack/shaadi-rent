@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/types/database";
+import { notifyBookingConfirmed } from "@/lib/notifications";
 
 const CF_SECRET = process.env.CASHFREE_SECRET_KEY ?? "";
 
@@ -118,9 +119,9 @@ export async function POST(req: NextRequest) {
           metadata: {
             ...currentMeta,
             refunds: updatedRefunds,
-            last_refund_id: cfRefundId || currentMeta.last_refund_id,
+            last_refund_id: (cfRefundId || currentMeta.last_refund_id) as string,
             last_refund_at: new Date().toISOString(),
-          },
+          } as any,
           updated_at: new Date().toISOString(),
         })
         .eq("id", paymentRow.id);
@@ -228,6 +229,13 @@ export async function POST(req: NextRequest) {
       status: "confirmed",
       notes: `Payment successful — Cashfree order ${cfOrderId}, payment ${cfPaymentId}`,
     });
+
+    // 5. Dispatch multi-channel transactional notifications (Email / SMS / WhatsApp)
+    try {
+      await notifyBookingConfirmed(bookingId);
+    } catch (notifErr) {
+      console.warn("[CF Webhook] Transactional notification error:", notifErr);
+    }
 
     console.log(`[CF Webhook] Payment SUCCESS — booking ${bookingId} confirmed`);
   } else if (isFailed) {

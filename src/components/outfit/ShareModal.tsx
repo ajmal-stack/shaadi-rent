@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, Copy, Check, Share2, Send, Mail } from "lucide-react";
 import { toast } from "sonner";
@@ -31,6 +32,11 @@ export function ShareModal({ isOpen, onClose, outfit }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [canNativeShare, setCanNativeShare] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -64,7 +70,7 @@ export function ShareModal({ isOpen, onClose, outfit }: ShareModalProps) {
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const shareText = `Check out this stunning designer wedding outfit on ShaadiRent: "${outfit.title}" for ${formatCurrency(outfit.rental_price)}/4-days!`;
 
@@ -119,12 +125,12 @@ export function ShareModal({ isOpen, onClose, outfit }: ShareModalProps) {
     }\nRental Price: ${formatCurrency(outfit.rental_price)}/4-days\n\nLink: ${shareUrl}\n`
   )}`;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="share-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6"
     >
       {/* Backdrop */}
       <div
@@ -292,6 +298,7 @@ export function ShareModal({ isOpen, onClose, outfit }: ShareModalProps) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

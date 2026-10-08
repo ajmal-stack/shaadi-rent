@@ -28,20 +28,21 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  Bell,
   Trash2,
   KeyRound,
-  Smartphone,
-  MessageSquare,
+  Zap,
+  Truck,
+  Pencil,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   updateProfileAction,
   changePasswordAction,
-  updateNotificationPrefsAction,
   deleteAccountAction,
-  type NotificationPreferences,
 } from "@/app/(customer)/account/actions";
+import { saveDeliveryAddress } from "@/app/actions/address";
+import type { DeliveryAddress } from "@/types/database";
 import { signOut } from "@/app/(public)/auth/actions";
 import { MobileProfileView } from "./MobileProfileView";
 
@@ -56,7 +57,7 @@ export interface ProfileData {
   district: string | null;
   state: string | null;
   verification_status: "pending" | "verified" | "rejected";
-  notification_prefs?: NotificationPreferences;
+  notification_prefs?: Record<string, boolean>;
   auth_provider?: string;
   has_password?: boolean;
   created_at: string;
@@ -78,9 +79,10 @@ interface ProfileClientProps {
   initialProfile: ProfileData;
   bookings: BookingSummary[];
   outfitCount?: number;
+  initialSavedAddress?: DeliveryAddress | null;
 }
 
-const INDIAN_STATES = [
+export const INDIAN_STATES = [
   "Andhra Pradesh",
   "Assam",
   "Bihar",
@@ -111,10 +113,11 @@ export function ProfileClient({
   initialProfile,
   bookings,
   outfitCount = 0,
+  initialSavedAddress = null,
 }: ProfileClientProps) {
   const [profile, setProfile] = useState<ProfileData>(initialProfile);
   const [activeTab, setActiveTab] = useState<
-    "personal" | "bookings" | "address" | "notifications" | "boutique" | "security"
+    "personal" | "bookings" | "address" | "boutique" | "security"
   >("personal");
 
   // Form states
@@ -126,6 +129,84 @@ export function ProfileClient({
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || "");
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
   const [avatarInput, setAvatarInput] = useState(profile.avatar_url || "");
+
+  // ── Saved 1-Click Delivery Address State (TASK 3) ──────────────────────────
+  const [savedDeliveryAddress, setSavedDeliveryAddress] = useState<DeliveryAddress | null>(
+    initialSavedAddress ?? null
+  );
+  const [isEditingDeliveryAddress, setIsEditingDeliveryAddress] = useState<boolean>(
+    !initialSavedAddress || !initialSavedAddress.address_line1
+  );
+  const [deliveryAddrForm, setDeliveryAddrForm] = useState<DeliveryAddress>({
+    full_name: initialSavedAddress?.full_name || initialProfile.full_name || "",
+    phone: initialSavedAddress?.phone || initialProfile.phone || "",
+    address_line1: initialSavedAddress?.address_line1 || "",
+    address_line2: initialSavedAddress?.address_line2 || "",
+    city: initialSavedAddress?.city || initialProfile.city || "",
+    state: initialSavedAddress?.state || initialProfile.state || "Delhi",
+    pincode: initialSavedAddress?.pincode || "",
+  });
+  const [isSavingDeliveryAddress, setIsSavingDeliveryAddress] = useState(false);
+
+  // Sync with localStorage on client mount if server had no address
+  useEffect(() => {
+    if (!initialSavedAddress) {
+      try {
+        const local = localStorage.getItem("shaadirent_saved_address");
+        if (local) {
+          const parsed = JSON.parse(local) as DeliveryAddress;
+          if (parsed.full_name && parsed.address_line1 && parsed.city && parsed.pincode) {
+            setSavedDeliveryAddress(parsed);
+            setDeliveryAddrForm(parsed);
+            setIsEditingDeliveryAddress(false);
+          }
+        }
+      } catch {}
+    }
+  }, [initialSavedAddress]);
+
+  async function handleSaveDeliveryAddress(e: React.FormEvent) {
+    e.preventDefault();
+    if (!deliveryAddrForm.full_name.trim()) {
+      toast.error("Full name is required.");
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(deliveryAddrForm.phone.trim())) {
+      toast.error("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    if (!deliveryAddrForm.address_line1.trim()) {
+      toast.error("Address line 1 is required.");
+      return;
+    }
+    if (!deliveryAddrForm.city.trim()) {
+      toast.error("City is required.");
+      return;
+    }
+    if (!/^\d{6}$/.test(deliveryAddrForm.pincode.trim())) {
+      toast.error("Please enter a valid 6-digit pincode.");
+      return;
+    }
+
+    setIsSavingDeliveryAddress(true);
+    try {
+      const res = await saveDeliveryAddress(deliveryAddrForm);
+      if (res.success) {
+        setSavedDeliveryAddress(deliveryAddrForm);
+        setIsEditingDeliveryAddress(false);
+        try {
+          localStorage.setItem("shaadirent_saved_address", JSON.stringify(deliveryAddrForm));
+        } catch {}
+        toast.success("⚡ 1-Click Delivery Address saved!");
+      } else {
+        toast.error(res.error || "Failed to save address.");
+      }
+    } catch {
+      toast.error("Failed to save delivery address.");
+    } finally {
+      setIsSavingDeliveryAddress(false);
+    }
+  }
 
   // ── Password Change Form State (TASK 11.1) ──────────────────────────────────
   const [currentPassword, setCurrentPassword] = useState("");
@@ -139,17 +220,6 @@ export function ProfileClient({
     initialProfile.has_password ?? true
   );
   const isGoogleAccount = initialProfile.auth_provider === "google";
-
-  // ── Notification Preferences State (TASK 11.2) ──────────────────────────────
-  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(
-    profile.notification_prefs || {
-      email_bookings: true,
-      sms_alerts: true,
-      whatsapp_updates: true,
-      promotions: false,
-    }
-  );
-  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
 
   // ── Delete Account Modal State (TASK 11.3) ──────────────────────────────────
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -261,31 +331,6 @@ export function ProfileClient({
     }
   }
 
-  // ── Notification Preferences Handlers (TASK 11.2) ─────────────────────────
-  async function handleSaveNotificationPrefs(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    setIsSavingPrefs(true);
-    try {
-      const res = await updateNotificationPrefsAction(notificationPrefs);
-      if (res.success) {
-        toast.success("Notification preferences saved successfully!");
-      } else {
-        toast.error(res.error || "Failed to save preferences.");
-      }
-    } catch {
-      toast.error("Failed to update notification preferences.");
-    } finally {
-      setIsSavingPrefs(false);
-    }
-  }
-
-  function toggleNotificationPref(key: keyof NotificationPreferences) {
-    setNotificationPrefs((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  }
-
   // ── Delete Account Handler (TASK 11.3) ────────────────────────────────────
   async function handleDeleteAccount() {
     if (deleteConfirmText.trim() !== "DELETE") {
@@ -365,11 +410,15 @@ export function ProfileClient({
           hasPasswordAccount={hasPasswordAccount}
           isGoogleAccount={isGoogleAccount}
           handleChangePassword={handleChangePassword}
-          notificationPrefs={notificationPrefs}
-          toggleNotificationPref={toggleNotificationPref}
-          handleSaveNotificationPrefs={handleSaveNotificationPrefs}
-          isSavingPrefs={isSavingPrefs}
           setDeleteModalOpen={setDeleteModalOpen}
+          savedDeliveryAddress={savedDeliveryAddress}
+          setSavedDeliveryAddress={setSavedDeliveryAddress}
+          deliveryAddrForm={deliveryAddrForm}
+          setDeliveryAddrForm={setDeliveryAddrForm}
+          isEditingDeliveryAddress={isEditingDeliveryAddress}
+          setIsEditingDeliveryAddress={setIsEditingDeliveryAddress}
+          handleSaveDeliveryAddress={handleSaveDeliveryAddress}
+          isSavingDeliveryAddress={isSavingDeliveryAddress}
         />
       </div>
 
@@ -585,7 +634,6 @@ export function ProfileClient({
             { id: "personal", label: "Personal Details", icon: User },
             { id: "bookings", label: `My Bookings (${bookings.length})`, icon: Calendar },
             { id: "address", label: "Address & Pickup", icon: MapPin },
-            { id: "notifications", label: "Notifications", icon: Bell },
             { id: "boutique", label: "Boutique & Earnings", icon: Sparkles },
             { id: "security", label: "Security & Login", icon: Lock },
           ] as const).map((tab) => {
@@ -840,26 +888,291 @@ export function ProfileClient({
             </div>
           )}
 
-          {/* TAB 3: ADDRESS & DELIVERY */}
+          {/* TAB 3: ADDRESS & DELIVERY (1-Click Checkout Enabled) */}
           {activeTab === "address" && (
             <div className="space-y-6">
-              <div>
-                <h2 className="font-display text-xl font-bold text-gray-950">
-                  Saved Address
-                </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Your primary location for outfit trial fitments and return pickups.
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-xl font-bold text-gray-950 flex items-center gap-2">
+                    <span>Saved Delivery Address</span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-900 px-2.5 py-0.5 text-xs font-bold">
+                      <Zap size={12} className="fill-amber-500 text-amber-600" />
+                      1-Click Checkout
+                    </span>
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your saved doorstep address for instant outfit rentals. Pre-fills automatically during checkout.
+                  </p>
+                </div>
+
+                {savedDeliveryAddress && !isEditingDeliveryAddress && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingDeliveryAddress(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3.5 py-2 text-xs font-bold text-rose-900 hover:bg-rose-50 shadow-2xs transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
+                  >
+                    <Pencil size={13} />
+                    <span>Edit Address</span>
+                  </button>
+                )}
               </div>
 
+              {/* 1. Saved Address Card (when available and not editing) */}
+              {savedDeliveryAddress && !isEditingDeliveryAddress && (
+                <div className="rounded-3xl border border-amber-200/90 bg-gradient-to-br from-amber-50/60 via-white to-amber-50/20 p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-amber-200/60 pb-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-950">
+                      <Truck size={16} className="text-amber-700" />
+                      <span>Preferred Doorstep Delivery Address</span>
+                    </div>
+                    <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold flex items-center gap-1">
+                      <CheckCircle2 size={11} className="text-emerald-700" />
+                      1-Click Ready
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-stone-700 space-y-1.5 pl-1">
+                    <p className="font-display text-lg font-bold text-stone-900">
+                      {savedDeliveryAddress.full_name}
+                    </p>
+                    <p className="text-stone-600 font-mono flex items-center gap-1.5">
+                      <Phone size={13} className="text-stone-400" />
+                      +91 {savedDeliveryAddress.phone}
+                    </p>
+                    <p className="text-stone-700 flex items-start gap-1.5 pt-1">
+                      <MapPin size={14} className="text-rose-700 shrink-0 mt-0.5" />
+                      <span>
+                        {savedDeliveryAddress.address_line1}
+                        {savedDeliveryAddress.address_line2 ? `, ${savedDeliveryAddress.address_line2}` : ""}
+                      </span>
+                    </p>
+                    <p className="text-stone-900 font-semibold pl-5">
+                      {savedDeliveryAddress.city}, {savedDeliveryAddress.state} — {savedDeliveryAddress.pincode}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-amber-200/60 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-600">
+                    <div className="flex items-center gap-1.5 text-emerald-800 font-medium">
+                      <CheckCircle2 size={14} className="text-emerald-700 shrink-0" />
+                      <span>Ready for 1-Click checkout on all bridal &amp; groom rentals</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingDeliveryAddress(true)}
+                      className="text-xs font-bold text-rose-800 hover:text-rose-950 underline cursor-pointer"
+                    >
+                      Change delivery address
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Edit or Add Address Form */}
+              {(!savedDeliveryAddress || isEditingDeliveryAddress) && (
+                <form
+                  onSubmit={handleSaveDeliveryAddress}
+                  className="rounded-3xl border border-rose-100/90 bg-white p-6 shadow-xs space-y-5"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+                        <Zap size={16} className="fill-amber-500 text-amber-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900">
+                          {savedDeliveryAddress ? "Update 1-Click Address" : "Add 1-Click Delivery Address"}
+                        </h3>
+                        <p className="text-[11px] text-gray-500">
+                          Enter your complete shipping address for doorstep delivery and pickup
+                        </p>
+                      </div>
+                    </div>
+                    {savedDeliveryAddress && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingDeliveryAddress(false)}
+                        className="text-xs font-medium text-gray-500 hover:text-gray-800 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Full Name */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-gray-800">
+                        Full Name <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={deliveryAddrForm.full_name}
+                        onChange={(e) =>
+                          setDeliveryAddrForm({ ...deliveryAddrForm, full_name: e.target.value })
+                        }
+                        placeholder="Recipient full name"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"
+                      />
+                    </div>
+
+                    {/* Phone */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-gray-800">
+                        Mobile Number <span className="text-rose-600">*</span>
+                      </label>
+                      <div className="relative flex">
+                        <span className="inline-flex items-center rounded-l-xl border border-r-0 border-gray-200 bg-gray-100 px-3 text-xs font-semibold text-gray-600">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          required
+                          maxLength={10}
+                          value={deliveryAddrForm.phone}
+                          onChange={(e) =>
+                            setDeliveryAddrForm({
+                              ...deliveryAddrForm,
+                              phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                            })
+                          }
+                          placeholder="10-digit mobile number"
+                          className="w-full rounded-r-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Address Line 1 */}
+                    <div className="sm:col-span-2 space-y-1">
+                      <label className="block text-xs font-bold text-gray-800">
+                        Flat / House No., Building, Street <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={deliveryAddrForm.address_line1}
+                        onChange={(e) =>
+                          setDeliveryAddrForm({ ...deliveryAddrForm, address_line1: e.target.value })
+                        }
+                        placeholder="e.g. Flat 402, Royal Palms, Link Road"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"
+                      />
+                    </div>
+
+                    {/* Address Line 2 */}
+                    <div className="sm:col-span-2 space-y-1">
+                      <label className="block text-xs font-bold text-gray-800">
+                        Locality / Area / Landmark <span className="text-gray-400 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={deliveryAddrForm.address_line2 ?? ""}
+                        onChange={(e) =>
+                          setDeliveryAddrForm({ ...deliveryAddrForm, address_line2: e.target.value })
+                        }
+                        placeholder="e.g. Near City Center Mall, Andheri West"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"
+                      />
+                    </div>
+
+                    {/* City */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-gray-800">
+                        City <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={deliveryAddrForm.city}
+                        onChange={(e) =>
+                          setDeliveryAddrForm({ ...deliveryAddrForm, city: e.target.value })
+                        }
+                        placeholder="City / Town"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"
+                      />
+                    </div>
+
+                    {/* Pincode */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-gray-800">
+                        Pincode <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={deliveryAddrForm.pincode}
+                        onChange={(e) =>
+                          setDeliveryAddrForm({
+                            ...deliveryAddrForm,
+                            pincode: e.target.value.replace(/\D/g, "").slice(0, 6),
+                          })
+                        }
+                        placeholder="6-digit PIN"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"
+                      />
+                    </div>
+
+                    {/* State */}
+                    <div className="sm:col-span-2 space-y-1">
+                      <label className="block text-xs font-bold text-gray-800">
+                        State <span className="text-rose-600">*</span>
+                      </label>
+                      <select
+                        required
+                        value={deliveryAddrForm.state}
+                        onChange={(e) =>
+                          setDeliveryAddrForm({ ...deliveryAddrForm, state: e.target.value })
+                        }
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"
+                      >
+                        <option value="">Select State</option>
+                        {INDIAN_STATES.map((st) => (
+                          <option key={st} value={st}>
+                            {st}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                    {savedDeliveryAddress && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingDeliveryAddress(false)}
+                        className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:text-gray-900 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={isSavingDeliveryAddress}
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 via-rose-700 to-rose-900 px-6 py-2.5 text-xs font-bold text-white shadow-sm hover:from-amber-700 hover:to-rose-950 transition-all active:scale-98 disabled:opacity-60 cursor-pointer"
+                    >
+                      {isSavingDeliveryAddress ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Zap size={14} className="fill-amber-300 text-amber-300" />
+                      )}
+                      <span>
+                        {isSavingDeliveryAddress ? "Saving Address…" : "⚡ Save 1-Click Address"}
+                      </span>
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* 3. Primary Fitting Location Overview */}
               <div className="rounded-2xl border border-gray-200 bg-stone-50/70 p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-rose-900">
                     <Home size={15} />
-                    <span>Primary Fitting & Delivery Address</span>
+                    <span>Profile Registered Location</span>
                   </div>
-                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
-                    Default
+                  <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-bold text-stone-600">
+                    KYC Profile
                   </span>
                 </div>
 
@@ -881,9 +1194,9 @@ export function ProfileClient({
                   <button
                     type="button"
                     onClick={() => setActiveTab("personal")}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-800 hover:text-rose-950"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-800 hover:text-rose-950 cursor-pointer"
                   >
-                    <span>Edit this address in Personal Details</span>
+                    <span>Edit registered location in Personal Details</span>
                     <ChevronRight size={13} />
                   </button>
                 </div>
@@ -891,165 +1204,7 @@ export function ProfileClient({
             </div>
           )}
 
-          {/* TAB 4: NOTIFICATION PREFERENCES (TASK 11.2) */}
-          {activeTab === "notifications" && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-display text-xl font-bold text-gray-950">
-                    Notification Preferences
-                  </h2>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Choose which booking milestones and styling alerts you wish to receive.
-                  </p>
-                </div>
 
-                <button
-                  type="button"
-                  disabled={isSavingPrefs}
-                  onClick={() => handleSaveNotificationPrefs()}
-                  className="inline-flex items-center gap-2 rounded-xl bg-rose-900 hover:bg-rose-950 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer self-start sm:self-auto"
-                >
-                  {isSavingPrefs ? (
-                    <Loader2 size={13} className="animate-spin" />
-                  ) : (
-                    <Save size={13} />
-                  )}
-                  <span>{isSavingPrefs ? "Saving..." : "Save Preferences"}</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 1. Email Booking Updates */}
-                <div className="rounded-2xl border border-stone-200 bg-stone-50/50 p-5 flex items-start justify-between gap-4 transition-colors hover:bg-white hover:border-rose-200 shadow-2xs">
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-800">
-                      <Mail size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900">
-                        Email Booking Updates
-                      </h4>
-                      <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                        Receive confirmation receipts, doorstep trial schedules, and return pickup reminders via email.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleNotificationPref("email_bookings")}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      notificationPrefs.email_bookings ? "bg-rose-900" : "bg-stone-300"
-                    }`}
-                    role="switch"
-                    aria-checked={notificationPrefs.email_bookings}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        notificationPrefs.email_bookings ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* 2. SMS Delivery Alerts */}
-                <div className="rounded-2xl border border-stone-200 bg-stone-50/50 p-5 flex items-start justify-between gap-4 transition-colors hover:bg-white hover:border-rose-200 shadow-2xs">
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-800">
-                      <Smartphone size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900">
-                        SMS Delivery Alerts
-                      </h4>
-                      <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                        Real-time SMS alerts with courier delivery tracking links and outfit return pickup OTPs.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleNotificationPref("sms_alerts")}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      notificationPrefs.sms_alerts ? "bg-rose-900" : "bg-stone-300"
-                    }`}
-                    role="switch"
-                    aria-checked={notificationPrefs.sms_alerts}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        notificationPrefs.sms_alerts ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* 3. WhatsApp Notifications */}
-                <div className="rounded-2xl border border-stone-200 bg-stone-50/50 p-5 flex items-start justify-between gap-4 transition-colors hover:bg-white hover:border-rose-200 shadow-2xs">
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">
-                      <MessageSquare size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900">
-                        WhatsApp Notifications
-                      </h4>
-                      <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                        Get invoice PDFs, fitting notes, and quick concierge assistance directly on WhatsApp.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleNotificationPref("whatsapp_updates")}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      notificationPrefs.whatsapp_updates ? "bg-rose-900" : "bg-stone-300"
-                    }`}
-                    role="switch"
-                    aria-checked={notificationPrefs.whatsapp_updates}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        notificationPrefs.whatsapp_updates ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* 4. Promotional & Style Drops */}
-                <div className="rounded-2xl border border-stone-200 bg-stone-50/50 p-5 flex items-start justify-between gap-4 transition-colors hover:bg-white hover:border-rose-200 shadow-2xs">
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-800">
-                      <Sparkles size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900">
-                        Festive Deals &amp; New Arrivals
-                      </h4>
-                      <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                        Early bird access to Sabyasachi, Manish Malhotra drop alerts, and festive promo codes.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleNotificationPref("promotions")}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      notificationPrefs.promotions ? "bg-rose-900" : "bg-stone-300"
-                    }`}
-                    role="switch"
-                    aria-checked={notificationPrefs.promotions}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        notificationPrefs.promotions ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* TAB 5: BOUTIQUE & EARNINGS HUB */}
           {activeTab === "boutique" && (

@@ -112,7 +112,7 @@ export function OutfitGallery({ images, outfitTitle }: OutfitGalleryProps) {
         />
 
         {/* Top Badges */}
-        <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-8">
           <span className="rounded-full bg-stone-950/80 px-3 py-1 text-[11px] font-bold text-white shadow-xs backdrop-blur-md">
             {formatAngleLabel(activeImage.image_type)}
           </span>
@@ -166,11 +166,10 @@ export function OutfitGallery({ images, outfitTitle }: OutfitGalleryProps) {
                 type="button"
                 onClick={() => setActiveIndex(idx)}
                 aria-label={`View image ${idx + 1}`}
-                className={`relative aspect-[3/4] h-20 sm:h-24 md:h-28 shrink-0 rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
-                  isSelected
-                    ? "border-rose-700 ring-2 ring-rose-200 scale-102"
-                    : "border-stone-200/80 opacity-70 hover:opacity-100 hover:border-stone-300"
-                }`}
+                className={`relative aspect-[3/4] h-20 sm:h-24 md:h-28 shrink-0 rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${isSelected
+                  ? "border-rose-700 ring-2 ring-rose-200 scale-102"
+                  : "border-stone-200/80 opacity-70 hover:opacity-100 hover:border-stone-300"
+                  }`}
               >
                 <Image
                   src={thumbUrl}

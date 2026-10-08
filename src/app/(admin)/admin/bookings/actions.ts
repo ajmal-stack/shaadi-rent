@@ -4,6 +4,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BookingStatus } from "@/types/database";
+import {
+  notifyOutForDelivery,
+  notifyDelivered,
+  notifyReturnReminder,
+  notifyReturnedInspection,
+  notifyCompletedRefund,
+  notifyBookingCancelled,
+  notifyDisputeAlert,
+} from "@/lib/notifications";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -82,6 +91,13 @@ export async function adminConfirmBooking(
     await setStatus(admin, bookingId, user.id, "confirmed", "Booking confirmed by admin.");
     await setStatus(admin, bookingId, user.id, "out_for_delivery", "Outfit dispatched to customer.");
 
+    // Trigger transactional notification
+    try {
+      await notifyOutForDelivery(bookingId);
+    } catch (notifErr) {
+      console.warn("[adminConfirmBooking] Notification error:", notifErr);
+    }
+
     revalidateAll(bookingId);
     return { success: true, newStatus: "out_for_delivery" };
   } catch (err: unknown) {
@@ -117,6 +133,13 @@ export async function adminMarkDelivered(
     await setStatus(admin, bookingId, user.id, "delivered", "Outfit delivered to customer.");
     await setStatus(admin, bookingId, user.id, "active", "Rental is now active.");
 
+    // Trigger transactional notification
+    try {
+      await notifyDelivered(bookingId);
+    } catch (notifErr) {
+      console.warn("[adminMarkDelivered] Notification error:", notifErr);
+    }
+
     revalidateAll(bookingId);
     return { success: true, newStatus: "active" };
   } catch (err: unknown) {
@@ -151,6 +174,13 @@ export async function adminMarkReturned(
     // Returned → inspection (auto-start)
     await setStatus(admin, bookingId, user.id, "returned", "Outfit returned by customer.");
     await setStatus(admin, bookingId, user.id, "inspection", "Post-return inspection started.");
+
+    // Trigger transactional notification
+    try {
+      await notifyReturnedInspection(bookingId);
+    } catch (notifErr) {
+      console.warn("[adminMarkReturned] Notification error:", notifErr);
+    }
 
     revalidateAll(bookingId);
     return { success: true, newStatus: "inspection" };
@@ -209,6 +239,13 @@ export async function adminCompleteBooking(
       note: eventNote,
       created_by: user.id,
     });
+
+    // Trigger transactional notification
+    try {
+      await notifyCompletedRefund(bookingId, depositAction, deductionAmount);
+    } catch (notifErr) {
+      console.warn("[adminCompleteBooking] Notification error:", notifErr);
+    }
 
     revalidateAll(bookingId);
     return { success: true };
@@ -298,7 +335,47 @@ export async function adminCancelBooking(
       created_by: user.id,
     });
 
+    // Trigger transactional notification
+    try {
+      await notifyBookingCancelled(bookingId, reason);
+    } catch (notifErr) {
+      console.warn("[adminCancelBooking] Notification error:", notifErr);
+    }
+
     revalidateAll(bookingId);
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : "Unexpected error." };
+  }
+}
+
+// =============================================================================
+// ACTION 6: Send Return Reminder (manual trigger)
+// Admin can manually fire the 24-hour return reminder if auto-trigger missed.
+// =============================================================================
+export async function adminSendReturnReminder(
+  bookingId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await assertAdmin();
+    await notifyReturnReminder(bookingId);
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : "Unexpected error." };
+  }
+}
+
+// =============================================================================
+// ACTION 7: Send Dispute Alert (manual trigger)
+// Admin can manually fire a dispute alert to renter & owner.
+// =============================================================================
+export async function adminSendDisputeAlert(
+  bookingId: string,
+  reason: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await assertAdmin();
+    await notifyDisputeAlert(bookingId, reason);
     return { success: true };
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : "Unexpected error." };

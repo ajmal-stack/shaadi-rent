@@ -238,7 +238,7 @@ export function OutfitActionCard({
 
   return (
     <>
-      <div className="sticky top-24 rounded-3xl border border-rose-100/90 bg-white p-6 sm:p-8 shadow-xl space-y-5">
+      <div className="rounded-3xl border border-rose-100/90 bg-white p-6 sm:p-8 shadow-xl space-y-5 max-h-[calc(100vh-5.5rem)] overflow-y-auto scrollbar-none">
         {/* Verification Pill & Actions */}
         <div className="flex items-center justify-between">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 shadow-2xs">

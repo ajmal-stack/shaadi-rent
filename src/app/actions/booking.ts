@@ -151,6 +151,22 @@ export async function createBooking(
     return { error: "Failed to create your booking. Please try again." };
   }
 
+  // Auto-save delivery address for future 1-click rentals
+  try {
+    await admin
+      .from("profiles")
+      .update({
+        saved_address: deliveryAddress,
+        phone: deliveryAddress.phone || undefined,
+        city: deliveryAddress.city || undefined,
+        state: deliveryAddress.state || undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+      .eq("id", user.id);
+  } catch (saveErr) {
+    console.warn("[createBooking] Could not auto-save address to profile:", saveErr);
+  }
+
   // ── COD path: confirm immediately, no payment gateway needed ─────────────────
   if (input.paymentMethod === "cod") {
     await admin
@@ -182,6 +198,14 @@ export async function createBooking(
       end_date: rentalEndDate,
       status: "blocked",
     });
+
+    // Dispatch transactional notifications (Email/SMS/WhatsApp)
+    try {
+      const { notifyBookingConfirmed } = await import("@/lib/notifications");
+      await notifyBookingConfirmed(newBooking.id);
+    } catch (notifErr) {
+      console.warn("[createBooking] COD notification error:", notifErr);
+    }
 
     return { codBookingId: newBooking.id };
   }

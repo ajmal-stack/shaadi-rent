@@ -451,6 +451,33 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                 onChange={(v) => setSettings({ ...settings, daily_digest_admin: v })}
               />
             </div>
+
+            {/* Provider Connectivity Overview */}
+            <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-900/40 p-4 space-y-3 mt-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                Connected Transactional Gateways
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-stone-900 dark:text-stone-100">Resend (Email)</p>
+                    <p className="text-[11px] text-stone-500">Free 3,000 emails/mo • Receipts & alerts</p>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                    Free Tier (₹0)
+                  </span>
+                </div>
+                <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-stone-900 dark:text-stone-100">WhatsApp (1-Click &amp; Meta Cloud)</p>
+                    <p className="text-[11px] text-stone-500">100% Free 1-click links • No Twilio markup</p>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                    Free Tier (₹0)
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

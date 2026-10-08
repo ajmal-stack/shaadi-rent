@@ -82,6 +82,14 @@ export async function confirmPaymentFromReturn(
     notes: `Payment confirmed via return-page verification — CF order ${cfOrderId}`,
   });
 
+  // 5. Dispatch transactional notifications (Email/SMS/WhatsApp)
+  try {
+    const { notifyBookingConfirmed } = await import("@/lib/notifications");
+    await notifyBookingConfirmed(bookingId);
+  } catch (notifErr) {
+    console.warn("[confirmPaymentFromReturn] Notification error:", notifErr);
+  }
+
   return { ok: true };
 }
 

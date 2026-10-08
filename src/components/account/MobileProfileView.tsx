@@ -33,10 +33,14 @@ import {
   AlertCircle,
   Trash2,
   Calendar,
+  Zap,
+  Truck,
+  Send,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { ProfileData, BookingSummary } from "./ProfileClient";
-import type { NotificationPreferences } from "@/app/(customer)/account/actions";
+import { INDIAN_STATES, type ProfileData, type BookingSummary } from "./ProfileClient";
+import type { DeliveryAddress } from "@/types/database";
 import { signOut } from "@/app/(public)/auth/actions";
 
 interface MobileProfileViewProps {
@@ -87,14 +91,18 @@ interface MobileProfileViewProps {
   isGoogleAccount: boolean;
   handleChangePassword: (e: React.FormEvent) => Promise<void>;
 
-  // Notification prefs
-  notificationPrefs: NotificationPreferences;
-  toggleNotificationPref: (key: keyof NotificationPreferences) => void;
-  handleSaveNotificationPrefs: (e?: React.FormEvent) => Promise<void>;
-  isSavingPrefs: boolean;
-
   // Delete modal
   setDeleteModalOpen: (open: boolean) => void;
+
+  // Saved 1-Click Delivery Address
+  savedDeliveryAddress: DeliveryAddress | null;
+  setSavedDeliveryAddress: React.Dispatch<React.SetStateAction<DeliveryAddress | null>>;
+  deliveryAddrForm: DeliveryAddress;
+  setDeliveryAddrForm: React.Dispatch<React.SetStateAction<DeliveryAddress>>;
+  isEditingDeliveryAddress: boolean;
+  setIsEditingDeliveryAddress: React.Dispatch<React.SetStateAction<boolean>>;
+  handleSaveDeliveryAddress: (e: React.FormEvent) => Promise<void>;
+  isSavingDeliveryAddress: boolean;
 }
 
 type ActiveSection =
@@ -103,7 +111,6 @@ type ActiveSection =
   | "bookings"
   | "payment"
   | "address"
-  | "notifications"
   | "security"
   | "support"
   | "vouchers"
@@ -155,11 +162,15 @@ export function MobileProfileView({
   hasPasswordAccount,
   isGoogleAccount,
   handleChangePassword,
-  notificationPrefs,
-  toggleNotificationPref,
-  handleSaveNotificationPrefs,
-  isSavingPrefs,
   setDeleteModalOpen,
+  savedDeliveryAddress,
+  setSavedDeliveryAddress,
+  deliveryAddrForm,
+  setDeliveryAddrForm,
+  isEditingDeliveryAddress,
+  setIsEditingDeliveryAddress,
+  handleSaveDeliveryAddress,
+  isSavingDeliveryAddress,
 }: MobileProfileViewProps) {
   const [activeSection, setActiveSection] = useState<ActiveSection>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -190,7 +201,6 @@ export function MobileProfileView({
             {activeSection === "bookings" && "My Rentals & Bookings"}
             {activeSection === "payment" && "Payments & Security Deposit"}
             {activeSection === "address" && "Saved Fitting Address"}
-            {activeSection === "notifications" && "Notification Settings"}
             {activeSection === "security" && "Login & Security"}
             {activeSection === "support" && "Help & Concierge"}
             {activeSection === "vouchers" && "Wedding Vouchers & Offers"}
@@ -504,21 +514,244 @@ export function MobileProfileView({
             </div>
           )}
 
-          {/* 4. SAVED ADDRESS & FITTING LOCATION */}
+          {/* 4. SAVED ADDRESS & FITTING LOCATION (1-Click Checkout Enabled) */}
           {activeSection === "address" && (
             <div className="space-y-4">
+              {/* 1. Saved 1-Click Address Card */}
+              {savedDeliveryAddress && !isEditingDeliveryAddress && (
+                <div className="rounded-3xl bg-gradient-to-br from-amber-50/70 via-white to-amber-50/30 p-5 shadow-xs border border-amber-200/90 space-y-3">
+                  <div className="flex items-center justify-between border-b border-amber-200/60 pb-2.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-900">
+                      <Zap size={11} className="fill-amber-500 text-amber-600" />
+                      ⚡ 1-Click Checkout Ready
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingDeliveryAddress(true)}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-rose-800 hover:text-rose-950"
+                    >
+                      <Pencil size={11} />
+                      <span>Edit</span>
+                    </button>
+                  </div>
+
+                  <div className="text-xs text-stone-700 space-y-1">
+                    <p className="font-bold text-sm text-stone-900">
+                      {savedDeliveryAddress.full_name}
+                    </p>
+                    <p className="text-stone-600 font-mono flex items-center gap-1">
+                      <Phone size={12} className="text-stone-400" />
+                      +91 {savedDeliveryAddress.phone}
+                    </p>
+                    <p className="text-stone-700 flex items-start gap-1 pt-0.5">
+                      <MapPin size={13} className="text-rose-700 shrink-0 mt-0.5" />
+                      <span>
+                        {savedDeliveryAddress.address_line1}
+                        {savedDeliveryAddress.address_line2 ? `, ${savedDeliveryAddress.address_line2}` : ""}
+                      </span>
+                    </p>
+                    <p className="text-stone-900 font-semibold pl-4">
+                      {savedDeliveryAddress.city}, {savedDeliveryAddress.state} — {savedDeliveryAddress.pincode}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-amber-200/60 flex items-center gap-1.5 text-[11px] text-emerald-800 font-medium">
+                    <CheckCircle2 size={13} className="text-emerald-700 shrink-0" />
+                    <span>Auto-fills in 1-Click on all rental bookings</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Form to Add or Edit 1-Click Address */}
+              {(!savedDeliveryAddress || isEditingDeliveryAddress) && (
+                <form
+                  onSubmit={handleSaveDeliveryAddress}
+                  className="rounded-3xl bg-white p-5 shadow-xs border border-rose-100/90 space-y-3.5"
+                >
+                  <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                    <div className="flex items-center gap-1.5">
+                      <Zap size={15} className="fill-amber-500 text-amber-600" />
+                      <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                        {savedDeliveryAddress ? "Update 1-Click Address" : "Add 1-Click Delivery Address"}
+                      </h3>
+                    </div>
+                    {savedDeliveryAddress && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingDeliveryAddress(false)}
+                        className="text-xs font-medium text-gray-500 hover:text-gray-800"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                      Full Name <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={deliveryAddrForm.full_name}
+                      onChange={(e) =>
+                        setDeliveryAddrForm({ ...deliveryAddrForm, full_name: e.target.value })
+                      }
+                      placeholder="Recipient full name"
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00a896]"
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                      Mobile Number <span className="text-rose-600">*</span>
+                    </label>
+                    <div className="relative flex">
+                      <span className="inline-flex items-center rounded-l-xl border border-r-0 border-gray-200 bg-gray-100 px-2.5 text-xs font-semibold text-gray-600">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        required
+                        maxLength={10}
+                        value={deliveryAddrForm.phone}
+                        onChange={(e) =>
+                          setDeliveryAddrForm({
+                            ...deliveryAddrForm,
+                            phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                          })
+                        }
+                        placeholder="10-digit mobile number"
+                        className="w-full rounded-r-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-mono text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00a896]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Address Line 1 */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                      Address Line 1 <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={deliveryAddrForm.address_line1}
+                      onChange={(e) =>
+                        setDeliveryAddrForm({ ...deliveryAddrForm, address_line1: e.target.value })
+                      }
+                      placeholder="Flat / House No., Building, Street"
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00a896]"
+                    />
+                  </div>
+
+                  {/* Address Line 2 */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                      Address Line 2 <span className="text-gray-400 font-normal">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={deliveryAddrForm.address_line2 ?? ""}
+                      onChange={(e) =>
+                        setDeliveryAddrForm({ ...deliveryAddrForm, address_line2: e.target.value })
+                      }
+                      placeholder="Area, Landmark"
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00a896]"
+                    />
+                  </div>
+
+                  {/* City & PIN */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                        City <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={deliveryAddrForm.city}
+                        onChange={(e) =>
+                          setDeliveryAddrForm({ ...deliveryAddrForm, city: e.target.value })
+                        }
+                        placeholder="City"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00a896]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                        Pincode <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={deliveryAddrForm.pincode}
+                        onChange={(e) =>
+                          setDeliveryAddrForm({
+                            ...deliveryAddrForm,
+                            pincode: e.target.value.replace(/\D/g, "").slice(0, 6),
+                          })
+                        }
+                        placeholder="6-digit PIN"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00a896]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* State */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                      State <span className="text-rose-600">*</span>
+                    </label>
+                    <select
+                      required
+                      value={deliveryAddrForm.state}
+                      onChange={(e) =>
+                        setDeliveryAddrForm({ ...deliveryAddrForm, state: e.target.value })
+                      }
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00a896]"
+                    >
+                      <option value="">Select State</option>
+                      {INDIAN_STATES.map((st) => (
+                        <option key={st} value={st}>
+                          {st}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSavingDeliveryAddress}
+                    className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-600 via-rose-700 to-rose-900 py-3 text-xs font-bold text-white shadow-md active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSavingDeliveryAddress ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Zap size={14} className="fill-amber-300 text-amber-300" />
+                    )}
+                    <span>
+                      {isSavingDeliveryAddress ? "Saving Address…" : "⚡ Save 1-Click Address"}
+                    </span>
+                  </button>
+                </form>
+              )}
+
+              {/* 3. Primary Fitting Location Overview */}
               <div className="rounded-3xl bg-white p-5 shadow-xs border border-gray-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#00a896]">
                     <MapPin size={16} />
-                    <span>Primary Fitting &amp; Delivery Address</span>
+                    <span>Profile Fitting Location</span>
                   </div>
-                  <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
-                    Default
+                  <span className="rounded-full bg-stone-100 text-stone-600 px-2 py-0.5 text-[10px] font-bold">
+                    KYC Profile
                   </span>
                 </div>
 
-                <div className="text-xs text-gray-700 space-y-1 bg-[#f7fafb] p-4 rounded-2xl border border-gray-100">
+                <div className="text-xs text-gray-700 space-y-1 bg-[#f7fafb] p-3.5 rounded-2xl border border-gray-100">
                   <p className="font-bold text-sm text-gray-900">
                     {profile.full_name || "Name not set"}
                   </p>
@@ -537,10 +770,11 @@ export function MobileProfileView({
                   onClick={() => setActiveSection("personal")}
                   className="w-full rounded-2xl bg-gray-100 hover:bg-gray-200 py-2.5 text-xs font-bold text-gray-800 text-center transition-colors"
                 >
-                  Edit Address Details
+                  Edit Profile Details
                 </button>
               </div>
 
+              {/* 4. Doorstep trial guarantee banner */}
               <div className="rounded-3xl bg-emerald-50/70 p-4 border border-emerald-200/60 text-xs text-emerald-900 space-y-1">
                 <p className="font-bold flex items-center gap-1.5">
                   <CheckCircle2 size={14} className="text-emerald-600" />
@@ -549,86 +783,6 @@ export function MobileProfileView({
                 <p className="text-[11px] text-emerald-700 leading-relaxed">
                   Our logistics team verifies pin-code serviceability before shipping couture lehengas and sherwanis with full transit insurance.
                 </p>
-              </div>
-            </div>
-          )}
-
-          {/* 4. NOTIFICATIONS */}
-          {activeSection === "notifications" && (
-            <div className="space-y-3">
-              <div className="rounded-3xl bg-white p-5 shadow-xs border border-gray-100 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-sm">
-                      Alert Preferences
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Stay updated on bookings &amp; trials
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={isSavingPrefs}
-                    onClick={() => handleSaveNotificationPrefs()}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#00a896] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs"
-                  >
-                    {isSavingPrefs ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <Save size={12} />
-                    )}
-                    <span>{isSavingPrefs ? "Saving…" : "Save"}</span>
-                  </button>
-                </div>
-
-                {/* Toggles */}
-                {[
-                  {
-                    key: "whatsapp_updates" as const,
-                    title: "WhatsApp Updates",
-                    desc: "Invoices, fitting schedules, and courier tracking",
-                  },
-                  {
-                    key: "sms_alerts" as const,
-                    title: "SMS Alerts",
-                    desc: "Return pickup OTPs and courier phone alerts",
-                  },
-                  {
-                    key: "email_bookings" as const,
-                    title: "Email Receipts",
-                    desc: "Deposit statements and booking confirmations",
-                  },
-                  {
-                    key: "promotions" as const,
-                    title: "Festive Promos & Drops",
-                    desc: "Exclusive discounts on Sabyasachi & Manish Malhotra",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.key}
-                    className="flex items-center justify-between gap-3 py-1"
-                  >
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-xs">{item.title}</h4>
-                      <p className="text-[11px] text-gray-500">{item.desc}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleNotificationPref(item.key)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                        notificationPrefs[item.key] ? "bg-[#00a896]" : "bg-gray-300"
-                      }`}
-                      role="switch"
-                      aria-checked={notificationPrefs[item.key]}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          notificationPrefs[item.key] ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                ))}
               </div>
             </div>
           )}
@@ -1165,7 +1319,7 @@ export function MobileProfileView({
               </span>
             </button>
 
-            {/* 4. My vouchers */}
+            {/* 5. My vouchers */}
             <button
               type="button"
               onClick={() => setActiveSection("vouchers")}

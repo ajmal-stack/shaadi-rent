@@ -1,7 +1,6 @@
-"use client";
-
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import {
   X,
   Sparkles,
@@ -19,8 +18,11 @@ import {
   Truck,
   CreditCard,
   Banknote,
+  Zap,
+  BookmarkCheck,
 } from "lucide-react";
 import { createBooking } from "@/app/actions/booking";
+import { getSavedDeliveryAddress, saveDeliveryAddress } from "@/app/actions/address";
 import { CashfreeCheckout } from "@/components/payment/CashfreeCheckout";
 import type { DeliveryAddress } from "@/types/database";
 
@@ -45,34 +47,34 @@ const STEP_LABELS = ["Summary", "Delivery", "Confirm", "Pay"];
 
 function StepIndicator({ current }: { current: Step }) {
   return (
-    <div className="flex items-center justify-center gap-2 mb-1">
+    <div className="flex items-center justify-between sm:justify-center gap-1 sm:gap-2 w-full max-w-sm mx-auto">
       {([1, 2, 3, 4] as Step[]).map((step) => {
         const done = step < current;
         const active = step === current;
         return (
-          <div key={step} className="flex items-center gap-2">
+          <div key={step} className="flex items-center gap-1 sm:gap-2">
             <div
               className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all ${
                 done
-                  ? "bg-emerald-500 border-emerald-500 text-white"
+                  ? "bg-emerald-600 border-emerald-600 text-white"
                   : active
-                  ? "bg-rose-700 border-rose-700 text-white"
+                  ? "bg-rose-800 border-rose-800 text-white shadow-xs ring-2 ring-rose-200"
                   : "bg-white border-stone-300 text-stone-400"
               }`}
             >
-              {done ? <CheckCircle2 size={12} /> : step}
+              {done ? <CheckCircle2 size={12} className="stroke-[2.5]" /> : step}
             </div>
             <span
-              className={`text-[10px] font-semibold hidden sm:block ${
-                active ? "text-stone-800" : "text-stone-400"
+              className={`text-[11px] font-semibold hidden md:inline-block ${
+                active ? "text-stone-900 font-bold" : "text-stone-400"
               }`}
             >
               {STEP_LABELS[step - 1]}
             </span>
-            {step < 3 && (
+            {step < 4 && (
               <div
-                className={`w-8 h-0.5 mx-1 ${
-                  done ? "bg-emerald-400" : "bg-stone-200"
+                className={`w-5 sm:w-8 h-0.5 mx-0.5 sm:mx-1 rounded-full ${
+                  done ? "bg-emerald-500" : "bg-stone-200"
                 }`}
               />
             )}
@@ -131,7 +133,96 @@ export function CheckDatesModal({
   });
   const [addrErrors, setAddrErrors] = useState<Partial<Record<keyof DeliveryAddress, string>>>({});
 
-  if (!isOpen) return null;
+  // ── Saved Address & 1-Click Checkout States ───────────────────────────────
+  const [savedAddress, setSavedAddress] = useState<DeliveryAddress | null>(null);
+  const [hasSavedAddress, setHasSavedAddress] = useState(false);
+  const [isUsingSaved, setIsUsingSaved] = useState(true);
+  const [saveForFuture, setSaveForFuture] = useState(true);
+
+  // Client-side mount tracking for portal rendering
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll when modal is active
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
+  // Dismiss on ESC key press
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) {
+        handleBackdropClick();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isPending]);
+
+  // Load saved address automatically when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isMounted = true;
+
+    // 1. Instant check from localStorage for fastest zero-latency prefill
+    try {
+      const local = localStorage.getItem("shaadirent_saved_address");
+      if (local) {
+        const parsed = JSON.parse(local) as DeliveryAddress;
+        if (parsed.full_name && parsed.address_line1 && parsed.city && parsed.pincode) {
+          if (isMounted) {
+            setAddr(parsed);
+            setSavedAddress(parsed);
+            setHasSavedAddress(true);
+            setIsUsingSaved(true);
+          }
+        }
+      }
+    } catch {
+      // ignore JSON parse error
+    }
+
+    // 2. Query server for authenticated user's profile address or past booking
+    getSavedDeliveryAddress().then((res) => {
+      if (!isMounted || !res.address) return;
+
+      if (res.hasFullAddress) {
+        setAddr(res.address);
+        setSavedAddress(res.address);
+        setHasSavedAddress(true);
+        setIsUsingSaved(true);
+        try {
+          localStorage.setItem("shaadirent_saved_address", JSON.stringify(res.address));
+        } catch {}
+      } else {
+        // Pre-fill partial contact info
+        setAddr((prev) => ({
+          ...prev,
+          full_name: res.address?.full_name || prev.full_name,
+          phone: res.address?.phone || prev.phone,
+          city: res.address?.city || prev.city,
+          state: res.address?.state || prev.state,
+        }));
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !mounted) return null;
 
   const serviceFee = Math.round(rentalPrice * 0.05);
   const totalAmount = rentalPrice + securityDeposit + serviceFee;
@@ -151,9 +242,18 @@ export function CheckDatesModal({
   };
 
   const handleNextStep = () => {
-    if (step === 1) { setStep(2); return; }
+    if (step === 1) {
+      setStep(2);
+      return;
+    }
     if (step === 2) {
       if (!validateAddress()) return;
+      if (saveForFuture) {
+        try {
+          localStorage.setItem("shaadirent_saved_address", JSON.stringify(addr));
+          saveDeliveryAddress(addr).catch(() => {});
+        } catch {}
+      }
       setStep(3);
     }
   };
@@ -225,38 +325,42 @@ export function CheckDatesModal({
     }
   };
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6"
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6"
     >
       {/* Backdrop */}
       <div
         onClick={handleBackdropClick}
-        className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-stone-950/70 backdrop-blur-sm transition-opacity"
         aria-hidden="true"
       />
 
       {/* Modal Card */}
-      <div className="relative w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border border-rose-100 bg-white shadow-2xl z-10 animate-in slide-in-from-bottom-4 sm:fade-in sm:zoom-in-95 duration-200">
+      <div className="relative w-full sm:max-w-lg md:max-w-xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-stone-100 bg-white shadow-2xl z-10 overflow-hidden animate-in slide-in-from-bottom-4 sm:fade-in sm:zoom-in-95 duration-200">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-stone-100 px-6 pt-5 pb-4 rounded-t-3xl">
-          {!isPending && (
-            <button
-              type="button"
-              onClick={handleBackdropClick}
-              aria-label="Close modal"
-              className="absolute top-4 right-4 rounded-full p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition-colors"
-            >
-              <X size={20} />
-            </button>
-          )}
+        <div className="sticky top-0 z-20 bg-white border-b border-stone-100 px-5 sm:px-6 pt-4 pb-3 rounded-t-3xl shadow-2xs">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <span className="text-[11px] font-bold tracking-wider uppercase text-rose-800 bg-rose-50 border border-rose-200/60 px-2.5 py-0.5 rounded-full truncate max-w-[200px] sm:max-w-xs">
+              {outfitTitle}
+            </span>
+            {!isPending && (
+              <button
+                type="button"
+                onClick={handleBackdropClick}
+                aria-label="Close modal"
+                className="rounded-full p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition-colors cursor-pointer shrink-0"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
           <StepIndicator current={step} />
-          <p className="text-center text-[10px] text-stone-400 mt-1 truncate">{outfitTitle}</p>
         </div>
 
-        <div className="px-6 pb-6 pt-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 sm:px-6 pb-6 pt-4 space-y-4">
           {/* ── STEP 1: Price Summary ───────────────────────────────────────── */}
           {step === 1 && (
             <>
@@ -342,22 +446,56 @@ export function CheckDatesModal({
                 </div>
               </div>
 
-              <div className="flex gap-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={handleNextStep}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-700 via-rose-800 to-stone-900 py-3.5 text-sm font-semibold text-white shadow-md hover:from-rose-800 hover:to-black transition-all active:scale-95"
-                >
-                  <span>Next: Delivery Details</span>
-                  <ArrowRight size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBackdropClick}
-                  className="rounded-xl border border-stone-200 px-4 py-3.5 text-xs font-semibold text-stone-600 hover:bg-stone-50 transition-colors"
-                >
-                  Cancel
-                </button>
+              <div className="pt-2 flex items-center gap-2.5 sm:gap-3">
+                {hasSavedAddress ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleNextStep}
+                      className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl sm:rounded-2xl border border-stone-200 bg-stone-50/90 hover:bg-stone-100 hover:text-stone-900 py-3.5 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-stone-700 transition-all active:scale-[0.98] cursor-pointer shadow-2xs"
+                    >
+                      <span className="truncate">Review / Change Address</span>
+                      <ArrowRight size={14} className="shrink-0" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (validateAddress()) {
+                          setStep(3);
+                        } else {
+                          setStep(2);
+                        }
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-600 via-rose-700 to-rose-900 py-3.5 px-3 sm:px-4 text-xs sm:text-sm font-bold text-white shadow-md shadow-rose-950/15 hover:from-amber-700 hover:to-stone-950 transition-all active:scale-[0.98] cursor-pointer whitespace-nowrap"
+                    >
+                      <Zap size={15} className="text-amber-300 fill-amber-300 shrink-0" />
+                      <span className="truncate">⚡ 1-Click Checkout</span>
+                      <span className="hidden sm:inline text-xs font-medium opacity-90 shrink-0">
+                        • ₹{totalAmount.toLocaleString("en-IN")}
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleBackdropClick}
+                      className="flex-1 flex items-center justify-center rounded-xl sm:rounded-2xl border border-stone-200 bg-stone-50/90 hover:bg-stone-100 py-3.5 px-4 text-xs sm:text-sm font-semibold text-stone-600 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleNextStep}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-gradient-to-r from-rose-700 via-rose-800 to-stone-900 py-3.5 px-4 text-xs sm:text-sm font-semibold text-white shadow-md hover:from-rose-800 hover:to-black transition-all active:scale-[0.98] cursor-pointer"
+                    >
+                      <span>Next: Delivery Details</span>
+                      <ArrowRight size={16} className="shrink-0" />
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}
@@ -379,145 +517,208 @@ export function CheckDatesModal({
                 </p>
               </div>
 
+              {/* Saved Address 1-Click Card (if available) */}
+              {hasSavedAddress && savedAddress && (
+                <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/30 p-4 space-y-3 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-900 px-2.5 py-0.5 text-[11px] font-bold self-start">
+                      <Zap size={11} className="fill-amber-500 text-amber-600" />
+                      Saved 1-Click Address
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isUsingSaved) {
+                          setIsUsingSaved(false);
+                        } else {
+                          setAddr(savedAddress);
+                          setIsUsingSaved(true);
+                        }
+                      }}
+                      className="text-xs font-semibold text-rose-800 hover:underline cursor-pointer self-start sm:self-auto"
+                    >
+                      {isUsingSaved ? "Edit / Use Different Address" : "Restore Saved Address"}
+                    </button>
+                  </div>
+
+                  <div className="text-xs text-stone-700 space-y-0.5 pl-1">
+                    <p className="font-bold text-stone-900 text-sm">{savedAddress.full_name}</p>
+                    <p className="text-stone-600">+91 {savedAddress.phone}</p>
+                    <p className="text-stone-600">
+                      {savedAddress.address_line1}
+                      {savedAddress.address_line2 ? `, ${savedAddress.address_line2}` : ""}
+                    </p>
+                    <p className="text-stone-600">
+                      {savedAddress.city}, {savedAddress.state} — {savedAddress.pincode}
+                    </p>
+                  </div>
+
+                  {isUsingSaved && (
+                    <div className="pt-2 border-t border-amber-200/60 flex items-center gap-1.5 text-[11px] text-emerald-800 font-medium">
+                      <CheckCircle2 size={13} className="text-emerald-700 shrink-0" />
+                      <span>Pre-filled &amp; ready for instant delivery</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Address Form */}
               <div className="space-y-3">
-                {/* Full Name */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">
-                    <User size={11} className="inline mr-1" />
-                    Full Name
-                  </label>
+                {(!hasSavedAddress || !isUsingSaved) && (
+                  <>
+                    {/* Full Name */}
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">
+                        <User size={11} className="inline mr-1" />
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={addr.full_name}
+                        onChange={(e) => setAddr({ ...addr, full_name: e.target.value })}
+                        placeholder="As on your ID proof"
+                        className={`w-full rounded-xl border px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all ${
+                          addrErrors.full_name ? "border-rose-400 bg-rose-50/50" : "border-stone-200 bg-stone-50/50"
+                        }`}
+                      />
+                      {addrErrors.full_name && (
+                        <p className="text-[11px] text-rose-600 mt-0.5 flex items-center gap-1">
+                          <AlertCircle size={11} />{addrErrors.full_name}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">
+                        <Phone size={11} className="inline mr-1" />
+                        Mobile Number
+                      </label>
+                      <div className="flex items-center border rounded-xl overflow-hidden bg-stone-50/50 focus-within:ring-2 focus-within:ring-rose-600/30 transition-all"
+                        style={{ borderColor: addrErrors.phone ? "#f87171" : "#e7e5e4" }}
+                      >
+                        <span className="px-3 py-2.5 text-sm text-stone-500 font-semibold border-r border-stone-200 bg-stone-100 shrink-0">+91</span>
+                        <input
+                          type="tel"
+                          value={addr.phone}
+                          onChange={(e) => setAddr({ ...addr, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                          placeholder="10-digit mobile number"
+                          maxLength={10}
+                          className="flex-1 px-3 py-2.5 text-sm bg-transparent focus:outline-none text-stone-900 placeholder:text-stone-400"
+                        />
+                      </div>
+                      {addrErrors.phone && (
+                        <p className="text-[11px] text-rose-600 mt-0.5 flex items-center gap-1">
+                          <AlertCircle size={11} />{addrErrors.phone}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Address Line 1 */}
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">
+                        Address Line 1
+                      </label>
+                      <input
+                        type="text"
+                        value={addr.address_line1}
+                        onChange={(e) => setAddr({ ...addr, address_line1: e.target.value })}
+                        placeholder="House / Flat no., Building, Street"
+                        className={`w-full rounded-xl border px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all ${
+                          addrErrors.address_line1 ? "border-rose-400 bg-rose-50/50" : "border-stone-200 bg-stone-50/50"
+                        }`}
+                      />
+                      {addrErrors.address_line1 && (
+                        <p className="text-[11px] text-rose-600 mt-0.5 flex items-center gap-1">
+                          <AlertCircle size={11} />{addrErrors.address_line1}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Address Line 2 */}
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">
+                        Address Line 2 <span className="normal-case font-normal text-stone-400">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={addr.address_line2 ?? ""}
+                        onChange={(e) => setAddr({ ...addr, address_line2: e.target.value })}
+                        placeholder="Locality, Landmark, Area"
+                        className="w-full rounded-xl border border-stone-200 bg-stone-50/50 px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all"
+                      />
+                    </div>
+
+                    {/* City + Pincode */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">City</label>
+                        <input
+                          type="text"
+                          value={addr.city}
+                          onChange={(e) => setAddr({ ...addr, city: e.target.value })}
+                          placeholder="City"
+                          className={`w-full rounded-xl border px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all ${
+                            addrErrors.city ? "border-rose-400 bg-rose-50/50" : "border-stone-200 bg-stone-50/50"
+                          }`}
+                        />
+                        {addrErrors.city && (
+                          <p className="text-[11px] text-rose-600 mt-0.5">{addrErrors.city}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">Pincode</label>
+                        <input
+                          type="text"
+                          value={addr.pincode}
+                          onChange={(e) => setAddr({ ...addr, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                          placeholder="6-digit PIN"
+                          maxLength={6}
+                          className={`w-full rounded-xl border px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all ${
+                            addrErrors.pincode ? "border-rose-400 bg-rose-50/50" : "border-stone-200 bg-stone-50/50"
+                          }`}
+                        />
+                        {addrErrors.pincode && (
+                          <p className="text-[11px] text-rose-600 mt-0.5">{addrErrors.pincode}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* State */}
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">State</label>
+                      <select
+                        value={addr.state}
+                        onChange={(e) => setAddr({ ...addr, state: e.target.value })}
+                        className={`w-full rounded-xl border px-3 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all appearance-none bg-stone-50/50 ${
+                          addrErrors.state ? "border-rose-400" : "border-stone-200"
+                        }`}
+                      >
+                        <option value="">Select State</option>
+                        {INDIAN_STATES.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                      {addrErrors.state && (
+                        <p className="text-[11px] text-rose-600 mt-0.5">{addrErrors.state}</p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+              {/* Save address checkbox (only shown when editing or entering new address) */}
+              {(!hasSavedAddress || !isUsingSaved) && (
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-stone-700 pt-1">
                   <input
-                    type="text"
-                    value={addr.full_name}
-                    onChange={(e) => setAddr({ ...addr, full_name: e.target.value })}
-                    placeholder="As on your ID proof"
-                    className={`w-full rounded-xl border px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all ${
-                      addrErrors.full_name ? "border-rose-400 bg-rose-50/50" : "border-stone-200 bg-stone-50/50"
-                    }`}
+                    type="checkbox"
+                    checked={saveForFuture}
+                    onChange={(e) => setSaveForFuture(e.target.checked)}
+                    className="h-4 w-4 rounded-sm border-stone-300 text-rose-700 focus:ring-rose-600"
                   />
-                  {addrErrors.full_name && (
-                    <p className="text-[11px] text-rose-600 mt-0.5 flex items-center gap-1">
-                      <AlertCircle size={11} />{addrErrors.full_name}
-                    </p>
-                  )}
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">
-                    <Phone size={11} className="inline mr-1" />
-                    Mobile Number
-                  </label>
-                  <div className="flex items-center border rounded-xl overflow-hidden bg-stone-50/50 focus-within:ring-2 focus-within:ring-rose-600/30 transition-all"
-                    style={{ borderColor: addrErrors.phone ? "#f87171" : "#e7e5e4" }}
-                  >
-                    <span className="px-3 py-2.5 text-sm text-stone-500 font-semibold border-r border-stone-200 bg-stone-100 shrink-0">+91</span>
-                    <input
-                      type="tel"
-                      value={addr.phone}
-                      onChange={(e) => setAddr({ ...addr, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
-                      placeholder="10-digit mobile number"
-                      maxLength={10}
-                      className="flex-1 px-3 py-2.5 text-sm bg-transparent focus:outline-none text-stone-900 placeholder:text-stone-400"
-                    />
-                  </div>
-                  {addrErrors.phone && (
-                    <p className="text-[11px] text-rose-600 mt-0.5 flex items-center gap-1">
-                      <AlertCircle size={11} />{addrErrors.phone}
-                    </p>
-                  )}
-                </div>
-
-                {/* Address Line 1 */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">
-                    Address Line 1
-                  </label>
-                  <input
-                    type="text"
-                    value={addr.address_line1}
-                    onChange={(e) => setAddr({ ...addr, address_line1: e.target.value })}
-                    placeholder="House / Flat no., Building, Street"
-                    className={`w-full rounded-xl border px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all ${
-                      addrErrors.address_line1 ? "border-rose-400 bg-rose-50/50" : "border-stone-200 bg-stone-50/50"
-                    }`}
-                  />
-                  {addrErrors.address_line1 && (
-                    <p className="text-[11px] text-rose-600 mt-0.5 flex items-center gap-1">
-                      <AlertCircle size={11} />{addrErrors.address_line1}
-                    </p>
-                  )}
-                </div>
-
-                {/* Address Line 2 */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">
-                    Address Line 2 <span className="normal-case font-normal text-stone-400">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={addr.address_line2 ?? ""}
-                    onChange={(e) => setAddr({ ...addr, address_line2: e.target.value })}
-                    placeholder="Locality, Landmark, Area"
-                    className="w-full rounded-xl border border-stone-200 bg-stone-50/50 px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all"
-                  />
-                </div>
-
-                {/* City + Pincode */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">City</label>
-                    <input
-                      type="text"
-                      value={addr.city}
-                      onChange={(e) => setAddr({ ...addr, city: e.target.value })}
-                      placeholder="City"
-                      className={`w-full rounded-xl border px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all ${
-                        addrErrors.city ? "border-rose-400 bg-rose-50/50" : "border-stone-200 bg-stone-50/50"
-                      }`}
-                    />
-                    {addrErrors.city && (
-                      <p className="text-[11px] text-rose-600 mt-0.5">{addrErrors.city}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">Pincode</label>
-                    <input
-                      type="text"
-                      value={addr.pincode}
-                      onChange={(e) => setAddr({ ...addr, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) })}
-                      placeholder="6-digit PIN"
-                      maxLength={6}
-                      className={`w-full rounded-xl border px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all ${
-                        addrErrors.pincode ? "border-rose-400 bg-rose-50/50" : "border-stone-200 bg-stone-50/50"
-                      }`}
-                    />
-                    {addrErrors.pincode && (
-                      <p className="text-[11px] text-rose-600 mt-0.5">{addrErrors.pincode}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* State */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">State</label>
-                  <select
-                    value={addr.state}
-                    onChange={(e) => setAddr({ ...addr, state: e.target.value })}
-                    className={`w-full rounded-xl border px-3 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-rose-600/30 transition-all appearance-none bg-stone-50/50 ${
-                      addrErrors.state ? "border-rose-400" : "border-stone-200"
-                    }`}
-                  >
-                    <option value="">Select State</option>
-                    {INDIAN_STATES.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                  {addrErrors.state && (
-                    <p className="text-[11px] text-rose-600 mt-0.5">{addrErrors.state}</p>
-                  )}
-                </div>
+                  <BookmarkCheck size={14} className="text-stone-500" />
+                  <span>Save this address for 1-click rentals on future bookings</span>
+                </label>
+              )}
               </div>
 
               <div className="flex gap-2.5 pt-1">
@@ -555,10 +756,18 @@ export function CheckDatesModal({
 
               {/* Address Summary */}
               <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4 text-xs space-y-1.5">
-                <p className="font-bold text-stone-700 flex items-center gap-1.5 mb-2">
-                  <Truck size={13} className="text-rose-700" />
-                  Delivering to:
-                </p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-bold text-stone-700 flex items-center gap-1.5">
+                    <Truck size={13} className="text-rose-700" />
+                    Delivering to:
+                  </p>
+                  {hasSavedAddress && isUsingSaved && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                      <Zap size={10} className="fill-amber-500 text-amber-600" />
+                      1-Click Address
+                    </span>
+                  )}
+                </div>
                 <p className="font-semibold text-stone-900">{addr.full_name}</p>
                 <p className="text-stone-600">+91 {addr.phone}</p>
                 <p className="text-stone-600">
@@ -576,7 +785,7 @@ export function CheckDatesModal({
               {/* Payment Method Selector */}
               <div className="space-y-2">
                 <p className="text-xs font-bold text-stone-700">Choose Payment Method</p>
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {/* Online Payment */}
                   <button
                     type="button"
@@ -768,6 +977,7 @@ export function CheckDatesModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
